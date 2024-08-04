@@ -10,10 +10,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.jetpacktest.authentication.AuthViewModel
 import com.example.jetpacktest.navigation.Screen
 
 @Composable
-fun ProfileScreen(navController: NavController) {
+fun ProfileScreen(appNavController: NavController, authViewModel: AuthViewModel) {
     Column(
         Modifier
             .fillMaxSize()
@@ -21,8 +22,9 @@ fun ProfileScreen(navController: NavController) {
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text("Profile Screen")
+        Text(authViewModel.user!!.name)
 
-        Button({ navController.navigate(Screen.Login.route) }) {
+        Button({ appNavController.navigate(Screen.Login.route) }) {
             Text("log out")
         }
     }
