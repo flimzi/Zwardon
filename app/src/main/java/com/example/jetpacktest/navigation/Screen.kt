@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import com.example.jetpacktest.R
 
 // there should be more fine grained classes
+// also this is kinda misleading because login is in a different navController so...
 sealed class Screen(val route: String, @StringRes val name: Int, val icon: ImageVector) {
     data object Home : Screen("home", R.string.home, Icons.Filled.Home)
     data object Login : Screen("login", R.string.login, Icons.Filled.Lock)
