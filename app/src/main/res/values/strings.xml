@@ -3,6 +3,8 @@
     <string name="home">Home</string>
     <string name="profile">Profile</string>
     <string name="login">Login</string>
+    <string name="verifying">Verifying…</string>
+    <string name="try_again_later">Please try again later</string>
     <string name="verification_success">Verification successful. Log in to continue.</string>
-    <string name="verification_failure">Verification unsuccessful. Please contact User Support.</string>
+    <string name="verification_failure">Verification unsuccessful. Please try again later or contact User Support.</string>
 </resources>
