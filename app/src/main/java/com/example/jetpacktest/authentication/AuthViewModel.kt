@@ -1,73 +1,101 @@
 package com.example.jetpacktest.authentication
 
+import android.app.Application
+import android.content.Context
+import android.util.Log
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
+import androidx.lifecycle.asLiveData
+import androidx.lifecycle.map
 import androidx.lifecycle.viewModelScope
-import com.example.jetpacktest.util.HttpClient
-import kotlinx.coroutines.Dispatchers
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import com.example.jetpacktest.data.Api
+import com.example.jetpacktest.data.User
+import com.example.jetpacktest.util.Response
+import io.ktor.client.call.body
+import io.ktor.http.HttpStatusCode
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import okhttp3.Call
-import okhttp3.Callback
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
-import okhttp3.Response
-import java.io.IOException
+import org.apache.commons.lang3.mutable.Mutable
 
-class AuthViewModel : ViewModel() {
-    var user: User? by mutableStateOf(null)
+private val Context.dataStore by preferencesDataStore(name = "settings")
 
-    fun login(login: String) {
-        user = User(login)
-    }
+class AuthViewModel(application: Application) : ViewModel() {
+    private val dataStore = application.applicationContext.dataStore
+    val accessTokenState = MutableStateFlow<Response<String?>>(Response.Loading)
+    val accessTokenData = accessTokenState.asLiveData()
+    val accessToken = MutableStateFlow<String?>(null)
 
-    fun logout() {
-        user = null
-    }
+    val userState = MutableStateFlow<Response<User?>>(Response.Loading)
+    val user = MutableStateFlow<User?>(null)
 
-    fun verifyUser(verificationToken: String, onResult: (Boolean) -> Unit) {
-        val url = "http://10.0.2.2:3000/api/auth/verify"
-        val json = """{ "token": "$verificationToken" }"""
-
-        val requestBody = json.toRequestBody("application/json".toMediaType())
-        val request = Request.Builder().url(url).post(requestBody).build()
-
-        HttpClient.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                onResult(false)
-            }
-
-            override fun onResponse(call: Call, response: Response) {
-                if (response.isSuccessful) {
-                    return onResult(true)
+    init {
+        accessTokenData.observeForever { tokenResponse ->
+            if (tokenResponse is Response.Result<String?>) {
+                if (tokenResponse.data != null) {
+                    viewModelScope.launch {
+                        userState.value = try {
+                            user.value = Api.Users.get(tokenResponse.data).body()
+                            Response.Result(user.value)
+                        } catch (e : Exception) {
+                            dataStore.edit { it.remove(JWT_TOKEN_KEY) }
+                            Response.Result(null)
+                        }
+                    }
+                } else {
+                    userState.value = Response.Result(null)
                 }
-
-                onResult(false)
             }
-        })
+        }
+
+        viewModelScope.launch {
+            try {
+                dataStore.data.map { it[JWT_TOKEN_KEY] }.collect {
+                    accessToken.value = it
+                    accessTokenState.value = Response.Result(it)
+                }
+            } catch (e : Exception) {
+                dataStore.edit { it.remove(JWT_TOKEN_KEY) }
+                accessTokenState.value = Response.Result(null)
+            }
+        }
     }
 
-// synchronous code example
-//    fun verifyToken(token: String, onResult: (Boolean) -> Unit) {
-//        viewModelScope.launch {
-//            val isSuccess = withContext(Dispatchers.IO) {
-//                try {
-//                    val url = "https://example.com/verify?token=$token"
-//                    val request = Request.Builder()
-//                        .url(url)
-//                        .build()
-//
-//                    val response = client.newCall(request).execute()
-//                    val isSuccess = response.isSuccessful
-//                    response.close()
-//                    isSuccess
-//                } catch (e: IOException) {
-//                    // Handle the error
-//                    false
-//                }
-//            }
-//            onResult(isSuccess)
-//        }
-//    }
+    // there also needs to be a method of generating, displaying and scanning the qr code for a patient
+    suspend fun login(email: String, password: String): Boolean {
+        val response = Api.Authentication.login(email, password)
+
+        if (response.status != HttpStatusCode.OK)
+            return false
+
+        val token = response.body<String>()
+        dataStore.edit { it[JWT_TOKEN_KEY] = token }
+        accessTokenState.value = Response.Result(token)
+        return true
+    }
+
+    suspend fun logout() {
+        (accessTokenState.value as? Response.Result<String?>)?.data?.let {
+            Api.Authentication.logout(it)
+        }
+
+        dataStore.edit { it.remove(JWT_TOKEN_KEY) }
+    }
+
+    companion object {
+        private val JWT_TOKEN_KEY = stringPreferencesKey("jwt_token")
+
+        val Factory = viewModelFactory {
+            initializer {
+                AuthViewModel(this[APPLICATION_KEY] as Application)
+            }
+        }
+    }
 }

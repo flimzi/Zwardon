@@ -7,4 +7,11 @@
     <string name="try_again_later">Please try again later</string>
     <string name="verification_success">Verification successful. Log in to continue.</string>
     <string name="verification_failure">Verification unsuccessful. Please try again later or contact User Support.</string>
+    <string name="register">Register</string>
+    <string name="email">E-mail</string>
+    <string name="password">Password</string>
+    <string name="addUser">Add User</string>
+    <string name="firstName">First name</string>
+    <string name="lastName">Last name</string>
+    <string name="birthDate">Date of birth</string>
 </resources>

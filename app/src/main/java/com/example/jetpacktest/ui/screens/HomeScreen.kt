@@ -8,13 +8,19 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.navigation.NavHostController
+import com.example.jetpacktest.authentication.AuthViewModel
 import com.example.jetpacktest.navigation.Screen
 
 @Composable
-fun HomeScreen(navController: NavController, menuNavController: NavController) {
+fun HomeScreen(appNavController: NavHostController, homeNavController: NavController, authViewModel: AuthViewModel) {
+    val user by authViewModel.user.collectAsState()
+
     Column(
         Modifier
             .fillMaxSize()
@@ -24,11 +30,11 @@ fun HomeScreen(navController: NavController, menuNavController: NavController) {
         // this should be in the top bar changed by navigation
         Text("Home screen")
 
-        Button(onClick = { menuNavController.navigate(Screen.Profile.route) }) {
+        Button(onClick = { homeNavController.navigate(Screen.Profile(user?.id!!).route) }) {
             Text("profile")
         }
 
-        Button(onClick = { navController.navigate(Screen.Login.route) }) {
+        Button(onClick = { appNavController.navigate(Screen.Login.route) }) {
             Text("login")
         }
     }
