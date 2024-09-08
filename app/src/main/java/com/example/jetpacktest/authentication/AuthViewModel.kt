@@ -2,16 +2,12 @@ package com.example.jetpacktest.authentication
 
 import android.app.Application
 import android.content.Context
-import android.util.Log
-import androidx.compose.runtime.*
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.asLiveData
-import androidx.lifecycle.map
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -23,12 +19,12 @@ import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import org.apache.commons.lang3.mutable.Mutable
 
-private val Context.dataStore by preferencesDataStore(name = "settings")
+val Context.dataStore by preferencesDataStore(name = "settings")
 
 class AuthViewModel(application: Application) : ViewModel() {
     private val dataStore = application.applicationContext.dataStore
+
     val accessTokenState = MutableStateFlow<Response<String?>>(Response.Loading)
     val accessTokenData = accessTokenState.asLiveData()
     val accessToken = MutableStateFlow<String?>(null)
@@ -39,10 +35,10 @@ class AuthViewModel(application: Application) : ViewModel() {
     init {
         accessTokenData.observeForever { tokenResponse ->
             if (tokenResponse is Response.Result<String?>) {
-                if (tokenResponse.data != null) {
+                if (tokenResponse.result != null) {
                     viewModelScope.launch {
                         userState.value = try {
-                            user.value = Api.Users.get(tokenResponse.data).body()
+                            user.value = Api.Users.get(tokenResponse.result).body<User>().copy(accessToken = tokenResponse.result)
                             Response.Result(user.value)
                         } catch (e : Exception) {
                             dataStore.edit { it.remove(JWT_TOKEN_KEY) }
@@ -77,12 +73,19 @@ class AuthViewModel(application: Application) : ViewModel() {
 
         val token = response.body<String>()
         dataStore.edit { it[JWT_TOKEN_KEY] = token }
+        // this could be triggered in dataStore.map.toLiveData.observeForever
         accessTokenState.value = Response.Result(token)
+
         return true
     }
 
+    suspend fun login(newAccessToken: String) {
+        dataStore.edit { it[JWT_TOKEN_KEY] = newAccessToken }
+        accessTokenState.value = Response.Result(newAccessToken)
+    }
+
     suspend fun logout() {
-        (accessTokenState.value as? Response.Result<String?>)?.data?.let {
+        (accessTokenState.value as? Response.Result<String?>)?.result?.let {
             Api.Authentication.logout(it)
         }
 
@@ -90,7 +93,7 @@ class AuthViewModel(application: Application) : ViewModel() {
     }
 
     companion object {
-        private val JWT_TOKEN_KEY = stringPreferencesKey("jwt_token")
+        val JWT_TOKEN_KEY = stringPreferencesKey("jwt_token")
 
         val Factory = viewModelFactory {
             initializer {

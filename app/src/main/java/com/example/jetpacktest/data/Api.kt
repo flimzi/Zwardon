@@ -63,10 +63,14 @@ object Api {
 
         suspend fun logoutAll(accessToken: String, userId: Int? = null) =
             httpClient.get(id(userId) + "/logoutAll") { bearerAuth(accessToken) }
+
+        suspend fun getSecondary(accessToken: String, userId: Int? = null) =
+            httpClient.get(id(userId) + "/related/secondary") { bearerAuth(accessToken) }
     }
 
     object Events {
         fun id(userId: Int?, eventId: Int) = Users.id(userId) + "/event/$eventId"
+        fun upcomingTasks(userId: Int? = null) = Users.id(userId) + "/tasks/upcoming"
 
         suspend fun add(accessToken: String, userId: Int? = null, event: Any) =
             httpClient.post(Users.id(userId) + "/events") {
@@ -87,5 +91,20 @@ object Api {
 
         suspend fun delete(accessToken: String, userId: Int? = null, eventId: Int) =
             httpClient.delete(id(userId, eventId)) { bearerAuth(accessToken) }
+
+        suspend fun getUpcomingTasks(accessToken: String, userId: Int? = null) =
+            httpClient.get(upcomingTasks(userId)) { bearerAuth(accessToken) }
+    }
+
+    object Fcm {
+        private const val FCM = "$API/fcm"
+        private const val TOKEN = "$FCM/token"
+
+        suspend fun token(accessToken: String, fcmToken: String) =
+            httpClient.put(TOKEN) {
+                bearerAuth(accessToken)
+                contentType(ContentType.Text.Plain)
+                setBody(fcmToken)
+            }
     }
 }

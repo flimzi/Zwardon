@@ -3,7 +3,10 @@ package com.example.jetpacktest.util
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.android.Android
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.logging.LogLevel
+import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
+import io.ktor.client.plugins.logging.SIMPLE
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.PrimitiveKind
@@ -18,7 +21,11 @@ val httpClient by lazy {
     HttpClient(Android) {
 //        expectSuccess = true
 
-        install(Logging)
+        install(Logging) {
+            logger = Logger.SIMPLE
+            level = LogLevel.ALL
+        }
+
         install(ContentNegotiation) {
             json(Json {
                 ignoreUnknownKeys = true
@@ -30,8 +37,8 @@ val httpClient by lazy {
 sealed class Response<out T> {
     data object Idle : Response<Nothing>()
     data object Loading : Response<Nothing>()
-    data object Success : Response<Nothing>()
-    data class Result<out T>(val data: T) : Response<T>()
+    data object Success : Response<Nothing>() // success should inherit from result
+    data class Result<out T>(val result: T) : Response<T>()
     open class Error(val message: String) : Response<Nothing>()
     object ServerError : Error("Server Error")
 }

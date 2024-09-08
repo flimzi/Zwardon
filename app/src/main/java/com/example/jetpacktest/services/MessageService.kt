@@ -2,16 +2,25 @@ package com.example.jetpacktest.services
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
-import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.lifecycle.asLiveData
 import com.example.jetpacktest.FullScreenActivity
 import com.example.jetpacktest.R
+import com.example.jetpacktest.authentication.AuthViewModel
+import com.example.jetpacktest.authentication.dataStore
+import com.example.jetpacktest.data.Api
+import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.asDeferred
 
 class MessageService : FirebaseMessagingService() {
     companion object {
@@ -21,13 +30,20 @@ class MessageService : FirebaseMessagingService() {
     override fun onCreate() {
         super.onCreate()
 
+        applicationContext.dataStore.data.mapNotNull { it[AuthViewModel.JWT_TOKEN_KEY] }.asLiveData().observeForever { accessToken ->
+            CoroutineScope(Dispatchers.IO).launch {
+                FirebaseMessaging.getInstance().token.asDeferred().await()?.let {
+                    Api.Fcm.token(accessToken, it)
+                }
+            }
+        }
+
         createNotificationChannel()
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
         val a = 3
         super.onMessageReceived(message)
-//        zwardonService?.test()
 
         val bundle = Bundle()
         for ((key, value) in message.data)

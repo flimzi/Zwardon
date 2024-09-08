@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "784564826365",
+    "project_id": "zwardon-12120",
+    "storage_bucket": "zwardon-12120.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:784564826365:android:8d0df84496168826208e94",
+        "android_client_info": {
+          "package_name": "com.example.jetpacktest"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAKuJ8W8UPT1ZTVAE0WqyzLwBbV1NjTleY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

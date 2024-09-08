@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">JetpackTest</string>
+    <string name="app_name">Zwardon</string>
     <string name="home">Home</string>
     <string name="profile">Profile</string>
     <string name="login">Login</string>
@@ -14,4 +14,8 @@
     <string name="firstName">First name</string>
     <string name="lastName">Last name</string>
     <string name="birthDate">Date of birth</string>
+    <string name="addTask">Add New Task</string>
+    <string name="task500">Task</string>
+    <string name="task501">Test Task</string>
+    <string name="scanQR">Scan QR</string>
 </resources>

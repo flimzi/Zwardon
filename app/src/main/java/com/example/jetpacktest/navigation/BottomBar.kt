@@ -6,17 +6,29 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.res.stringResource
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
+import androidx.navigation.NavDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 
-// the screen collection is a loose contract because not all screens are going to be in a given navhost
-// obviously the routes provided externally need to be placed inside the navController graph
+val NavBackStackEntry.actualRoute: String?
+    get() = destination.route?.let {
+        it.split("/").joinToString("/") { segment ->
+            if (segment.startsWith("{") && segment.endsWith("}"))
+                arguments?.get(segment.removeSurrounding("{", "}"))?.toString() ?: segment
+            else
+                segment
+        }
+    }
+
 @Composable
 fun BottomBar(navController: NavController, screens: Collection<Screen>) {
     NavigationBar {
         screens.forEach { (route, name, icon) ->
+            val current by navController.currentBackStackEntryAsState()
+
             NavigationBarItem(
-                route == navController.currentBackStackEntryAsState().value?.destination?.route,
+                route == current?.actualRoute,
                 icon = { Icon(icon, contentDescription = stringResource(name)) },
                 label = { Text(stringResource(name)) },
                 onClick = {
