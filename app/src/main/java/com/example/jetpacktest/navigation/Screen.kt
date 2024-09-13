@@ -3,6 +3,7 @@ package com.example.jetpacktest.navigation
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Home
@@ -23,7 +24,7 @@ sealed class Screen(val route: String, @StringRes val name: Int, val icon: Image
     data object ScanQR : Screen("scanqr", R.string.scanQR, Icons.Filled.Face)
     class Profile(private val userId: Int) : Screen("user/${userId}/profile", R.string.profile, Icons.Filled.AccountCircle)
     class AddTask(private val userId: Int) : Screen("user/${userId}/task", R.string.addTask, Icons.Filled.AddCircle)
-    data object AddUser : Screen("addUser", R.string.addUser, Icons.Filled.AccountCircle)
+    data object AddUser : Screen("addUser", R.string.addUser, Icons.Filled.AddCircle)
 
     operator fun component1() = route
     operator fun component2() = name

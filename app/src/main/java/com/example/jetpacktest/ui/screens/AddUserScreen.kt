@@ -120,12 +120,10 @@ fun AddUserScreen(navController: NavController, authViewModel: AuthViewModel, us
                         )
 
                         state = try {
-                            val accessToken = authViewModel.accessToken.value.orEmpty()
-
                             val userId = if (user.id == 0) {
-                                Api.Users.add(accessToken, newUser).body<Int>()
+                                Api.Users.add(authViewModel.accessToken, newUser).body<Int>()
                             } else {
-                                Api.Users.update(accessToken, user.id, newUser)
+                                Api.Users.update(authViewModel.accessToken, user.id, newUser)
                                 user.id
                             }
 

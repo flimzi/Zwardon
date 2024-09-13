@@ -66,17 +66,13 @@ fun LoginScreen(navController: NavController, authViewModel: AuthViewModel) {
             Spacer(Modifier.height(16.dp))
 
             Button({
-                coroutineScope.launch {
-                    state = Response.Loading
+                state = Response.Loading
 
-                    state = try {
-                        if (authViewModel.login(email, password))
-                            Response.Success
-                        else
-                            Response.Error("Login failed")
-                    } catch (e: Exception) {
-                        Response.Error("Server error")
-                    }
+                coroutineScope.launch {
+                    state = if (authViewModel.login(email, password))
+                        Response.Success
+                    else
+                        Response.Error("Login failed")
                 }
             }, Modifier.fillMaxWidth()) {
                 if (state is Response.Loading)

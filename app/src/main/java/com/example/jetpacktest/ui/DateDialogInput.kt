@@ -14,7 +14,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,12 +26,12 @@ import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.toLocalDateTime
 import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MyDatePicker(
-    date: MutableState<LocalDate?>,
+fun DateDialogInput(
+    date: LocalDate?,
+    onChange: (LocalDate?) -> Unit = { },
     required: Boolean = false,
     enabled: Boolean = true,
     label: @Composable (() -> Unit)? = { Text("Select date") }
@@ -49,19 +48,20 @@ fun MyDatePicker(
 
     fun hide() {
         visible = false
-        error = required && date.value == null
+        error = required && date == null
     }
 
     fun select() {
-        date.value = datePickerState.selectedDateMillis?.let {
+        val selected = datePickerState.selectedDateMillis?.let {
             Instant.fromEpochMilliseconds(it).toLocalDateTime(TimeZone.currentSystemDefault()).date
         }
 
+        onChange(selected)
         hide()
     }
 
     LaunchedEffect(date) {
-        datePickerState.selectedDateMillis = date.value?.atStartOfDayIn(TimeZone.currentSystemDefault())?.toEpochMilliseconds()
+        datePickerState.selectedDateMillis = date?.atStartOfDayIn(TimeZone.currentSystemDefault())?.toEpochMilliseconds()
     }
 
     OutlinedTextField(
@@ -92,4 +92,14 @@ fun MyDatePicker(
             },
         ) { DatePicker(datePickerState, showModeToggle = false) }
     }
+}
+
+@Composable
+fun CertainDateDialogInput(
+    date: LocalDate,
+    onChange: (LocalDate) -> Unit = { },
+    enabled: Boolean = true,
+    label: @Composable (() -> Unit)? = { Text("Select date") }
+) {
+    DateDialogInput(date, { onChange(it ?: date) }, true, enabled, label)
 }

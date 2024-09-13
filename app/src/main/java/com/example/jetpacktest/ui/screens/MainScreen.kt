@@ -44,7 +44,6 @@ fun MainScreen(appNavController: NavHostController, authViewModel: AuthViewModel
     val homeNavController = rememberNavController()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val snackbarHostState = remember { SnackbarHostState() }
-    val user by authViewModel.user.collectAsState()
 
     fun toggleDrawer() {
         coroutineScope.launch {
@@ -55,11 +54,11 @@ fun MainScreen(appNavController: NavHostController, authViewModel: AuthViewModel
     }
 
     ModalNavigationDrawer(
-        { DrawerContent(homeNavController, authViewModel, drawerState, listOf(Screen.Home, Screen.Profile(user?.id!!))) },
+        { DrawerContent(homeNavController, authViewModel, drawerState, listOf(Screen.Home, Screen.Profile(authViewModel.user.id))) },
         drawerState = drawerState
     ) {
         Scaffold(
-            topBar = { TopBar(homeNavController, Screen.Profile(user?.id!!), ::toggleDrawer) },
+            topBar = { TopBar(homeNavController, Screen.Profile(authViewModel.user.id), ::toggleDrawer) },
 //            bottomBar = { BottomBar(homeNavController, listOf(Screen.Home, Screen.Profile(user?.id!!))) },
             snackbarHost = { SnackbarHost(snackbarHostState) }
         ) {
@@ -84,7 +83,6 @@ fun MainScreen(appNavController: NavHostController, authViewModel: AuthViewModel
                         "user/{userId}/task",
                         listOf(navArgument(RouteParameters.USER_ID) { type = NavType.IntType })
                     ) {
-//                        AddTaskScreen(homeNavController, authViewModel, it.arguments?.getInt(RouteParameters.USER_ID)!!)
                         AddTaskDialog(homeNavController, authViewModel, taskViewModel, it.arguments?.getInt(RouteParameters.USER_ID)!!)
                     }
                 }

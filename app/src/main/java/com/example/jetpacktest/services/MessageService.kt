@@ -11,8 +11,8 @@ import androidx.lifecycle.asLiveData
 import com.example.jetpacktest.FullScreenActivity
 import com.example.jetpacktest.R
 import com.example.jetpacktest.authentication.AuthViewModel
-import com.example.jetpacktest.authentication.dataStore
 import com.example.jetpacktest.data.Api
+import com.example.jetpacktest.extensions.dataStore
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
@@ -30,7 +30,7 @@ class MessageService : FirebaseMessagingService() {
     override fun onCreate() {
         super.onCreate()
 
-        applicationContext.dataStore.data.mapNotNull { it[AuthViewModel.JWT_TOKEN_KEY] }.asLiveData().observeForever { accessToken ->
+        applicationContext.dataStore.data.mapNotNull { it[AuthViewModel.JWT_TOKEN] }.asLiveData().observeForever { accessToken ->
             CoroutineScope(Dispatchers.IO).launch {
                 FirebaseMessaging.getInstance().token.asDeferred().await()?.let {
                     Api.Fcm.token(accessToken, it)

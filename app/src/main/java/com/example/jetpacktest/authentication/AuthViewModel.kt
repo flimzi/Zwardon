@@ -1,99 +1,52 @@
 package com.example.jetpacktest.authentication
 
 import android.app.Application
-import android.content.Context
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
-import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.jetpacktest.data.Api
 import com.example.jetpacktest.data.User
-import com.example.jetpacktest.util.Response
+import com.example.jetpacktest.extensions.dataStore
 import io.ktor.client.call.body
 import io.ktor.http.HttpStatusCode
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
-
-val Context.dataStore by preferencesDataStore(name = "settings")
+import kotlinx.coroutines.flow.stateIn
 
 class AuthViewModel(application: Application) : ViewModel() {
     private val dataStore = application.applicationContext.dataStore
 
-    val accessTokenState = MutableStateFlow<Response<String?>>(Response.Loading)
-    val accessTokenData = accessTokenState.asLiveData()
-    val accessToken = MutableStateFlow<String?>(null)
+    val userState = dataStore.data
+        .map { it[JWT_TOKEN] }
+        .map { it?.let { Api.Users.get(it).body<User>().copy(accessToken = it) } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    val userState = MutableStateFlow<Response<User?>>(Response.Loading)
-    val user = MutableStateFlow<User?>(null)
+    val user: User get() = userState.value!!
+    val accessToken: String get() = user.accessToken!!
 
-    init {
-        accessTokenData.observeForever { tokenResponse ->
-            if (tokenResponse is Response.Result<String?>) {
-                if (tokenResponse.result != null) {
-                    viewModelScope.launch {
-                        userState.value = try {
-                            user.value = Api.Users.get(tokenResponse.result).body<User>().copy(accessToken = tokenResponse.result)
-                            Response.Result(user.value)
-                        } catch (e : Exception) {
-                            dataStore.edit { it.remove(JWT_TOKEN_KEY) }
-                            Response.Result(null)
-                        }
-                    }
-                } else {
-                    userState.value = Response.Result(null)
-                }
-            }
+    suspend fun login(accessToken: String) {
+        dataStore.edit { it[JWT_TOKEN] = accessToken }
+    }
+
+    suspend fun login(email: String, password: String): Boolean
+        = Api.Authentication.login(email, password).let {
+            if (it.status != HttpStatusCode.OK)
+                return false
+
+            login(it.body<String>())
+            return true
         }
-
-        viewModelScope.launch {
-            try {
-                dataStore.data.map { it[JWT_TOKEN_KEY] }.collect {
-                    accessToken.value = it
-                    accessTokenState.value = Response.Result(it)
-                }
-            } catch (e : Exception) {
-                dataStore.edit { it.remove(JWT_TOKEN_KEY) }
-                accessTokenState.value = Response.Result(null)
-            }
-        }
-    }
-
-    // there also needs to be a method of generating, displaying and scanning the qr code for a patient
-    suspend fun login(email: String, password: String): Boolean {
-        val response = Api.Authentication.login(email, password)
-
-        if (response.status != HttpStatusCode.OK)
-            return false
-
-        val token = response.body<String>()
-        dataStore.edit { it[JWT_TOKEN_KEY] = token }
-        // this could be triggered in dataStore.map.toLiveData.observeForever
-        accessTokenState.value = Response.Result(token)
-
-        return true
-    }
-
-    suspend fun login(newAccessToken: String) {
-        dataStore.edit { it[JWT_TOKEN_KEY] = newAccessToken }
-        accessTokenState.value = Response.Result(newAccessToken)
-    }
 
     suspend fun logout() {
-        (accessTokenState.value as? Response.Result<String?>)?.result?.let {
-            Api.Authentication.logout(it)
-        }
-
-        dataStore.edit { it.remove(JWT_TOKEN_KEY) }
+        dataStore.edit { it.remove(JWT_TOKEN) }
     }
 
     companion object {
-        val JWT_TOKEN_KEY = stringPreferencesKey("jwt_token")
+        val JWT_TOKEN = stringPreferencesKey("jwt_token")
 
         val Factory = viewModelFactory {
             initializer {

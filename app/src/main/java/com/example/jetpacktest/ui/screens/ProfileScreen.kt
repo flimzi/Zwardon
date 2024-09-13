@@ -44,7 +44,7 @@ fun ProfileScreen(appNavController: NavController, authViewModel: AuthViewModel,
 
     LaunchedEffect(Unit) {
         state = try {
-            val user = Api.Users.get(authViewModel.accessToken.value!!, userId).body<User>()
+            val user = Api.Users.get(authViewModel.accessToken, userId).body<User>()
             Response.Result(user)
         } catch (e : Exception) {
             authViewModel.logout()
@@ -79,7 +79,7 @@ fun ProfileScreen(appNavController: NavController, authViewModel: AuthViewModel,
 
                 Button({
                     coroutineScope.launch {
-                        authViewModel.login(Api.Users.token(authViewModel.accessToken.value!!, user.id).body())
+                        authViewModel.login(Api.Users.token(authViewModel.accessToken, user.id).body())
                     }
                 }) {
                     Text("log in")

@@ -48,7 +48,7 @@ fun HomeScreen(appNavController: NavHostController, homeNavController: NavContro
 
     LaunchedEffect(Unit) {
         upcomingTasks = Response.Loading
-        val result = Api.Events.getUpcomingTasks(authViewModel.accessToken.value!!).body<List<Task>>()
+        val result = Api.Events.getUpcomingTasks(authViewModel.accessToken).body<List<Task>>()
         upcomingTasks = Response.Result(result)
     }
 
@@ -91,7 +91,7 @@ fun HomeScreen(appNavController: NavHostController, homeNavController: NavContro
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(stringResource(it.typeId), style = TextStyle(fontWeight = FontWeight.Bold))
+                                    Text(it.typeId?.label.orEmpty(), style = TextStyle(fontWeight = FontWeight.Bold))
                                     Text(it.startDate.time.toString())
                                 }
                             }

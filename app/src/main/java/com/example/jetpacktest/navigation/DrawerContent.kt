@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
@@ -53,11 +54,10 @@ fun DrawerRoute(navController: NavController, drawerState: DrawerState, screen: 
 
 @Composable
 fun DrawerContent(navController: NavController, authViewModel: AuthViewModel, drawerState: DrawerState, screens: Collection<Screen>) {
-    val user by authViewModel.user.collectAsState()
-    val secondaries = remember { mutableListOf<User>() }
+    val secondaries = remember { mutableStateListOf<User>() }
 
     LaunchedEffect(Unit) {
-        val users = Api.Users.getSecondary(authViewModel.accessToken.value!!, authViewModel.user.value?.id).body<List<User>>()
+        val users = Api.Users.getSecondary(authViewModel.accessToken, authViewModel.user.id).body<List<User>>()
         secondaries.addAll(users)
     }
 
@@ -66,7 +66,8 @@ fun DrawerContent(navController: NavController, authViewModel: AuthViewModel, dr
 
         screens.forEach { DrawerRoute(navController, drawerState, it) }
 
-        if (user?.role == 1) {
+        if (authViewModel.user.role == 1) {
+            HorizontalDivider()
             DrawerRoute(navController, drawerState, Screen.AddUser)
 
             // list secondary users (not sure how they should update though, i guess a websocket would be ideal)

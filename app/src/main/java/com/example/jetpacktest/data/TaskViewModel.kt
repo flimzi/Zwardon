@@ -17,7 +17,7 @@ class TaskViewModel(private val authViewModel: AuthViewModel) : ViewModel() {
         } else {
             emit(Response.Loading)
 
-            Api.Events.get(authViewModel.accessToken.value!!, eventId = taskId).let {
+            Api.Events.get(authViewModel.accessToken, eventId = taskId).let {
                 if (it.status != HttpStatusCode.OK) {
                     emit(Response.ServerError)
                 } else {
@@ -34,7 +34,7 @@ class TaskViewModel(private val authViewModel: AuthViewModel) : ViewModel() {
     fun add(userId: Int, task: Task) = flow {
         emit(Response.Loading)
 
-        Api.Events.add(authViewModel.accessToken.value!!, userId, task).let {
+        Api.Events.add(authViewModel.accessToken, userId, task).let {
             if (it.status == HttpStatusCode.Created)
                 emit(Response.Result(it.body<Int>()))
             else

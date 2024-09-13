@@ -17,5 +17,5 @@ data class User(
 //    @Serializable(with = LocalDateTimeSerializer::class) val birth_date: LocalDateTime? = null
     val accessToken: String? = null,
 ) {
-
+    val fullName: String = "$first_name $last_name"
 }

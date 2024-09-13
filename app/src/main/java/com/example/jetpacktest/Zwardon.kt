@@ -18,28 +18,23 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.jetpacktest.authentication.AuthViewModel
-import com.example.jetpacktest.data.User
 import com.example.jetpacktest.navigation.Screen
 import com.example.jetpacktest.ui.screens.LoginScreen
 import com.example.jetpacktest.ui.screens.MainScreen
 import com.example.jetpacktest.ui.screens.RegisterScreen
 import com.example.jetpacktest.ui.screens.ScanQRScreen
-import com.example.jetpacktest.util.Response
 
 @Composable
 fun Zwardon(appNavController: NavHostController, authViewModel: AuthViewModel) {
     val userState by authViewModel.userState.collectAsState()
 
     LaunchedEffect(userState) {
-        if (userState is Response.Result) {
-            if ((userState as? Response.Result<User?>)?.result != null) {
-                appNavController.navigate(Screen.Home.route)
-            } else {
-                appNavController.navigate(Screen.Login.route) {
-                    popUpTo(Screen.Login.route) { inclusive = true }
-                }
+        if (userState == null)
+            appNavController.navigate(Screen.Login.route) {
+                popUpTo(Screen.Login.route) { inclusive = true }
             }
-        }
+        else
+            appNavController.navigate(Screen.Home.route)
     }
 
     MaterialTheme(if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()) {

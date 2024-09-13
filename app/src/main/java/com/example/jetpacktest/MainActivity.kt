@@ -13,19 +13,16 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.example.jetpacktest.authentication.AuthViewModel
-import com.example.jetpacktest.data.Api
-import com.example.jetpacktest.data.User
 import com.example.jetpacktest.navigation.Screen
-import com.github.javafaker.Faker
 import kotlinx.coroutines.runBlocking
 
 class MainActivity : ComponentActivity() {
     private lateinit var appNavController: NavHostController
     private val authViewModel: AuthViewModel by viewModels { AuthViewModel.Factory }
+    private val authViewModel2: AuthViewModel by viewModels { AuthViewModel.Factory }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

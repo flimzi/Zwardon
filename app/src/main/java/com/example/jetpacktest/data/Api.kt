@@ -65,7 +65,7 @@ object Api {
             httpClient.get(id(userId) + "/logoutAll") { bearerAuth(accessToken) }
 
         suspend fun getSecondary(accessToken: String, userId: Int? = null) =
-            httpClient.get(id(userId) + "/related/secondary") { bearerAuth(accessToken) }
+            httpClient.get(id(userId) + "/related/children") { bearerAuth(accessToken) }
     }
 
     object Events {
