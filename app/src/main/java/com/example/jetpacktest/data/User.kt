@@ -1,21 +1,29 @@
 package com.example.jetpacktest.data
 
-import com.example.jetpacktest.util.LocalDateTimeSerializer
+import com.example.jetpacktest.routes.Api
+import com.example.jetpacktest.util.ResponseFlow
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
-import java.time.LocalDateTime
+
+interface Model<T> {
+    val id: Int
+    fun load(accessToken: String): ResponseFlow<T>
+}
 
 @Serializable
 data class User(
-    val id: Int,
-    val role: Int,
+    override val id: Int = -1,
+    val role: Int = 0,
     val email: String? = null,
     val password: String? = null,
     val first_name: String? = null,
     val last_name: String? = null,
     val birth_date: Instant? = null,
-//    @Serializable(with = LocalDateTimeSerializer::class) val birth_date: LocalDateTime? = null
-    val accessToken: String? = null,
-) {
-    val fullName: String = "$first_name $last_name"
+): Model<User> {
+    val fullName = "$first_name $last_name"
+    val isReal = id >= 0
+
+    override fun load(accessToken: String) = Api.Users.get(accessToken, id)
 }
+
+data class AuthenticatedUser(val details: User, val accessToken: String)

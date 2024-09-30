@@ -1,89 +1,96 @@
 package com.example.jetpacktest.ui.screens
 
-import android.media.RouteListingPreference
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
-import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.Button
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.window.Dialog
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavBackStackEntry
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavHostController
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
-import com.example.jetpacktest.authentication.AuthViewModel
-import com.example.jetpacktest.data.TaskViewModel
-import com.example.jetpacktest.data.TaskViewModelFactory
-import com.example.jetpacktest.navigation.BottomBar
-import com.example.jetpacktest.navigation.DrawerContent
-import com.example.jetpacktest.navigation.RouteParameters
-import com.example.jetpacktest.navigation.Screen
-import com.example.jetpacktest.navigation.TopBar
+import com.example.jetpacktest.R
+import com.example.jetpacktest.data.AuthenticatedUser
+import com.example.jetpacktest.data.User
+import com.example.jetpacktest.routes.Api
+import com.example.jetpacktest.routes.App
+import com.example.jetpacktest.routes.singleIntParameterRoute
+import com.example.jetpacktest.ui.Layout
+import com.example.jetpacktest.util.WaitRequest
+import com.example.jetpacktest.util.eager
+import com.example.jetpacktest.util.wait
 import kotlinx.coroutines.launch
 
 @Composable
-fun MainScreen(appNavController: NavHostController, authViewModel: AuthViewModel) {
-    val taskViewModel = viewModel<TaskViewModel>(factory = TaskViewModelFactory(authViewModel))
+fun MainScreen(appNavController: NavHostController, currentUser: AuthenticatedUser) {
     val coroutineScope = rememberCoroutineScope()
     val homeNavController = rememberNavController()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
-    val snackbarHostState = remember { SnackbarHostState() }
-
-    fun toggleDrawer() {
-        coroutineScope.launch {
-            drawerState.apply {
-                if (isClosed) open() else close()
-            }
-        }
-    }
 
     ModalNavigationDrawer(
-        { DrawerContent(homeNavController, authViewModel, drawerState, listOf(Screen.Home, Screen.Profile(authViewModel.user.id))) },
+        { /* DrawerContent(homeNavController, currentUser, drawerState, listOf(App.User.id.replace(currentUser.details.id))) */ },
         drawerState = drawerState
     ) {
-        Scaffold(
-            topBar = { TopBar(homeNavController, Screen.Profile(authViewModel.user.id), ::toggleDrawer) },
-//            bottomBar = { BottomBar(homeNavController, listOf(Screen.Home, Screen.Profile(user?.id!!))) },
-            snackbarHost = { SnackbarHost(snackbarHostState) }
+        Layout(
+            { Text(stringResource(R.string.app_name)) },
+            leftAction = {
+                IconButton(
+                    {
+                        coroutineScope.launch {
+                            if (drawerState.isClosed) drawerState.open() else drawerState.close()
+                        }
+                    }
+                ) {
+                    Icon(Icons.Filled.Menu, contentDescription = "Menu")
+                }
+            },
+            rightAction = {
+                IconButton({ homeNavController.navigate(App.User.id.replace(currentUser.details.id).route) }) {
+                    Icon(App.User.id.icon, "Profile")
+                }
+            }
         ) {
-            Surface(Modifier.padding(it)) {
-                NavHost(homeNavController, Screen.Home.route) {
-                    composable(Screen.Home.route) {
-                        HomeScreen(appNavController, homeNavController, authViewModel)
-                    }
+            NavHost(homeNavController, App.home.route) {
+                // would be nice to somehow allow for filling the entire scrollable content space
+                // also in terms of screens that are not their own dialogs but instead content inside the main dialog some structure needs to be provided
+                composable(App.home.route) {
+//                    Api.Users.get(currentUser.accessToken, -994).eager(::state) { user ->
+//                        Text(user?.email ?: "no email")
+//                    }
+//
+//                    Api.Users.get(currentUser.accessToken, -994).wait { user ->
+//                        Text(user.email ?: "no email")
+//                    }
+//
+//                    Api.Users.getChildren(currentUser.accessToken, 1000).list {
+//
+//                    }
 
-                    composable(Screen.AddUser.route) {
-                        AddUserScreen(homeNavController, authViewModel)
+                    Button({ homeNavController.navigate(App.User.edit.replace(200).route) }) {
+                        Text("go forth")
                     }
+                }
 
-                    composable(
-                        "user/{userId}/profile",
-                        listOf(navArgument(RouteParameters.USER_ID) { type = NavType.IntType })
-                    ) {
-                        ProfileScreen(homeNavController, authViewModel, it.arguments?.getInt(RouteParameters.USER_ID)!!)
+                singleIntParameterRoute(App.User.edit) { _, userId ->
+                    // i need to redirect the results of the requestflow to the resulting dialog
+                    // i think this should probably be done by separating Layout layout from its state
+                    // so that it could then be mediated by a parent response handler
+                    Api.Users.get(currentUser.accessToken, userId).eager(::state) { user ->
+                        EditUserDialog(user ?: User())
                     }
+                }
 
-                    composable(
-                        "user/{userId}/task",
-                        listOf(navArgument(RouteParameters.USER_ID) { type = NavType.IntType })
-                    ) {
-                        AddTaskDialog(homeNavController, authViewModel, taskViewModel, it.arguments?.getInt(RouteParameters.USER_ID)!!)
+                singleIntParameterRoute(App.User.id) { _, userId ->
+                    // ApiRepository could be used to optionally cache responses with a lifetime
+                    WaitRequest(Api.Users.get(currentUser.accessToken, userId)) { user ->
+                        ProfileScreen(appNavController, currentUser, user)
                     }
                 }
             }

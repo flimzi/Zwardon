@@ -10,9 +10,9 @@ import androidx.core.app.NotificationCompat
 import androidx.lifecycle.asLiveData
 import com.example.jetpacktest.FullScreenActivity
 import com.example.jetpacktest.R
-import com.example.jetpacktest.authentication.AuthViewModel
-import com.example.jetpacktest.data.Api
-import com.example.jetpacktest.extensions.dataStore
+import com.example.jetpacktest.repositories.AuthRepository
+import com.example.jetpacktest.repositories.AuthRepository.Companion.authStore
+import com.example.jetpacktest.routes.Api
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
@@ -30,7 +30,7 @@ class MessageService : FirebaseMessagingService() {
     override fun onCreate() {
         super.onCreate()
 
-        applicationContext.dataStore.data.mapNotNull { it[AuthViewModel.JWT_TOKEN] }.asLiveData().observeForever { accessToken ->
+        applicationContext.authStore.data.mapNotNull { it[AuthRepository.tokenKey] }.asLiveData().observeForever { accessToken ->
             CoroutineScope(Dispatchers.IO).launch {
                 FirebaseMessaging.getInstance().token.asDeferred().await()?.let {
                     Api.Fcm.token(accessToken, it)

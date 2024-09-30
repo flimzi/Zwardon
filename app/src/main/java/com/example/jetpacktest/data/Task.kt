@@ -1,6 +1,5 @@
 package com.example.jetpacktest.data
 
-import com.example.jetpacktest.R
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -17,12 +16,14 @@ data class Task(
     val start_date: Instant,
     val duration_seconds: Int? = null,
     val interval_seconds: Int? = null,
+
+    val taskDrugs: List<TaskDrug>? = null
 ) {
     val startDate = start_date.toLocalDateTime(TimeZone.currentSystemDefault())
     val typeId = Type.entries.find { type == it.id }
 
     enum class Type(val id: Int, val label: String) {
-        INFO(501, "Information"),
-        DRUG(502, "Drug prescription")
+        INFO_TASK(501, "Information"),
+        DRUG_TASK(502, "Drug prescription")
     }
 }

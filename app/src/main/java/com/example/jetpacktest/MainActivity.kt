@@ -1,6 +1,8 @@
 package com.example.jetpacktest
 
 import android.Manifest
+import android.app.Application
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -11,18 +13,24 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.viewModels
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
-import com.example.jetpacktest.authentication.AuthViewModel
-import com.example.jetpacktest.navigation.Screen
+import com.example.jetpacktest.repositories.AuthRepository
+import dagger.hilt.android.AndroidEntryPoint
+import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.runBlocking
 
+@HiltAndroidApp
+class MyApplication : Application() {
+    val authRepository by lazy { AuthRepository(this) }
+}
+
+val Context.myApplication get() = this.applicationContext as MyApplication
+
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private lateinit var appNavController: NavHostController
-    private val authViewModel: AuthViewModel by viewModels { AuthViewModel.Factory }
-    private val authViewModel2: AuthViewModel by viewModels { AuthViewModel.Factory }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,7 +39,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             appNavController = rememberNavController()
 
-            Zwardon(appNavController, authViewModel)
+            Zwardon(appNavController)
             handleIntent(intent)
         }
     }
@@ -46,8 +54,8 @@ class MainActivity : ComponentActivity() {
 
     private fun handleIntent(intent: Intent) {
         if (intent.action == Intent.ACTION_VIEW && intent.data?.path == "/verification") {
-            appNavController.navigate(Screen.Login.route) {
-                popUpTo(Screen.Login.route) { inclusive = true }
+            appNavController.navigate("") {
+                popUpTo("") { inclusive = true }
             }
 
             Toast.makeText(this, R.string.verifying, Toast.LENGTH_SHORT).show()

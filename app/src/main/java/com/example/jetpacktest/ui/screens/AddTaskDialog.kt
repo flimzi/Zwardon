@@ -4,14 +4,12 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -33,12 +31,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimeInput
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -56,16 +51,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
-import com.example.jetpacktest.authentication.AuthViewModel
-import com.example.jetpacktest.data.Api
+import com.example.jetpacktest.data.AuthenticatedUser
 import com.example.jetpacktest.data.Task
-import com.example.jetpacktest.data.TaskViewModel
+import com.example.jetpacktest.data.TaskDrug
 import com.example.jetpacktest.data.User
 import com.example.jetpacktest.ui.CertainDateDialogInput
 import com.example.jetpacktest.ui.Choice
 import com.example.jetpacktest.ui.ChoiceDialogInput
 import com.example.jetpacktest.util.Response
-import io.ktor.client.call.body
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDate
@@ -79,18 +72,16 @@ import kotlinx.datetime.toLocalDateTime
 @Composable
 fun AddTaskDialog(
     navController: NavController,
-    authViewModel: AuthViewModel,
-    taskViewModel: TaskViewModel,
+    currentUser: AuthenticatedUser,
     userId: Int,
-    type: Task.Type = Task.Type.INFO,
-    taskId: Int? = null
+    task: Task? = null,
+    loading: Boolean = false
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
-    var updateState by remember { mutableStateOf<Response<Int>>(Response.Idle) }
-    var task by remember { mutableStateOf<Task?>(null) }
-    val taskState by taskViewModel.get(taskId).collectAsState(Response.Idle)
+    var updateState by remember { mutableStateOf<Response<Int?>>(Response.Idle) }
     val enabled by remember { mutableStateOf(true) }
+    val scrollState = rememberScrollState()
 
     val taskDate = (task?.start_date ?: Clock.System.now()).toLocalDateTime(TimeZone.currentSystemDefault())
     var startDate by remember { mutableStateOf(LocalDate(taskDate.year, taskDate.month, taskDate.dayOfMonth)) }
@@ -100,10 +91,9 @@ fun AddTaskDialog(
     var interval by rememberSaveable { mutableFloatStateOf(1f) }
     val children = remember { mutableStateListOf<User>() }
     var receiverId by remember { mutableIntStateOf(userId) }
-    var typeId by remember { mutableStateOf(type) }
-
+    var type by remember { mutableStateOf(task?.typeId) }
     var info by remember { mutableStateOf(task?.info ?: "") }
-    val scrollState = rememberScrollState()
+    val taskDrugs = remember { mutableStateListOf<TaskDrug>() }
 
     fun cancel() = navController.popBackStack()
     fun save() {
@@ -111,23 +101,14 @@ fun AddTaskDialog(
         val newTask = Task(0, 501, 0, 0, 0, info, startInstant, duration.toInt(), if (recurring) interval.toInt() else null)
 
         coroutineScope.launch {
-            taskViewModel.add(receiverId, newTask).collect { updateState = it }
+//            currentUser.addTask(receiverId, newTask).collect { updateState = it }
         }
     }
 
     LaunchedEffect(Unit) {
-        Api.Users.getSecondary(authViewModel.accessToken).body<List<User>>().let {
-            children.addAll(it)
-        }
-    }
-
-    LaunchedEffect(taskState) {
-        when (val current = taskState) {
-            is Response.Result<Task> -> {
-                task = current.result
-            }
-            else -> { }
-        }
+//        Api.Users.getChildren(currentUser.accessToken).body<List<User>>().let {
+//            children.addAll(it)
+//        }
     }
 
     Dialog(::cancel, DialogProperties(usePlatformDefaultWidth = false)) {
@@ -169,7 +150,7 @@ fun AddTaskDialog(
                     children.map { Choice(it.fullName, it, mutableStateOf(it.id == userId)) },
                     { receiverId = it.first().id },
                     Modifier.fillMaxWidth(),
-                    minSelected = 1, maxSelected = 1,
+                    minChosen = 1, maxChosen = 1,
                     enabled = enabled && task == null
                 ) {
                     Text("Patient")
@@ -177,20 +158,12 @@ fun AddTaskDialog(
 
                 ChoiceDialogInput(
                     Task.Type.entries.toTypedArray().map { Choice(it.label, it, mutableStateOf(it == type)) },
-                    { typeId = it.first() },
+                    { type = it.first() },
                     Modifier.fillMaxWidth(),
-                    minSelected = 1, maxSelected = 1,
+                    minChosen = 1, maxChosen = 1,
                     enabled = enabled && task == null
                 ) {
                     Text("Task type")
-                }
-
-                when (typeId) {
-                    Task.Type.DRUG -> {
-                        // adddrugdialog (new or existing)
-                        // list drugs
-                    }
-                    else -> { }
                 }
 
                 TimeInput(startTime)
@@ -223,6 +196,11 @@ fun AddTaskDialog(
                     }
                 }
 
+                when (type) {
+                    Task.Type.DRUG_TASK -> TaskDrugSelectionInput(currentUser, userId)
+                    else -> { }
+                }
+
                 OutlinedTextField(
                     info, { info = it }, Modifier.fillMaxWidth(),
                     label = { Text("Task information") },
@@ -231,7 +209,7 @@ fun AddTaskDialog(
                 )
             }
 
-            if (taskState is Response.Loading) {
+            if (loading) {
                 Box(
                     Modifier
                         .fillMaxSize()
@@ -250,10 +228,7 @@ fun AddTaskDialog(
         LaunchedEffect(updateState) {
             when (val state = updateState) {
                 is Response.Error -> snackbarHostState.showSnackbar(state.message)
-                is Response.Result -> {
-                    snackbarHostState.showSnackbar("Success")
-                    task = null
-                }
+                is Response.Result -> snackbarHostState.showSnackbar("Success")
                 else -> { }
             }
         }

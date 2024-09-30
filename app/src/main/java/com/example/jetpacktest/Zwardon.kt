@@ -1,56 +1,64 @@
 package com.example.jetpacktest
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.example.jetpacktest.authentication.AuthViewModel
-import com.example.jetpacktest.navigation.Screen
+import com.example.jetpacktest.routes.App
+import com.example.jetpacktest.ui.screens.LoadingBox
 import com.example.jetpacktest.ui.screens.LoginScreen
 import com.example.jetpacktest.ui.screens.MainScreen
 import com.example.jetpacktest.ui.screens.RegisterScreen
-import com.example.jetpacktest.ui.screens.ScanQRScreen
+import com.example.jetpacktest.util.Response
 
 @Composable
-fun Zwardon(appNavController: NavHostController, authViewModel: AuthViewModel) {
-    val userState by authViewModel.userState.collectAsState()
+fun Zwardon(appNavController: NavHostController) {
+    val context = LocalContext.current
+    val userState by context.myApplication.authRepository.userState.collectAsState()
+    val user = userState.resultOrNull
 
-    LaunchedEffect(userState) {
-        if (userState == null)
-            appNavController.navigate(Screen.Login.route) {
-                popUpTo(Screen.Login.route) { inclusive = true }
-            }
-        else
-            appNavController.navigate(Screen.Home.route)
-    }
+    // this needs to be rethinked because the load dialog is overstaying its welcome by a long shot
+    val startRoute = if (userState is Response.Loading)
+        App.loading
+    else if (user == null)
+        App.Authentication.login
+    else
+        App.home
 
     MaterialTheme(if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()) {
-        // why the fuck is the surface white (looks amazing great job android team ily)
-        Surface {
-            NavHost(appNavController, "splash") {
-                composable("splash") {
-                    CircularProgressIndicator(
-                        Modifier
-                            .fillMaxSize()
-                            .wrapContentSize(Alignment.Center))
+        NavHost(
+            appNavController,
+            startRoute.route,
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            composable(App.Authentication.login.route) {
+                LoginScreen(appNavController)
+            }
+
+            composable(App.Authentication.register.route) {
+                RegisterScreen(appNavController)
+            }
+
+            composable(App.loading.route) {
+                LoadingBox()
+            }
+
+            if (user != null) {
+                composable(App.home.route) {
+                    MainScreen(appNavController, user)
                 }
-                composable(Screen.Login.route) { LoginScreen(appNavController, authViewModel) }
-                composable(Screen.Register.route) { RegisterScreen(appNavController) }
-                composable(Screen.Home.route) { MainScreen(appNavController, authViewModel) }
-                composable(Screen.ScanQR.route) { ScanQRScreen() }
             }
         }
     }

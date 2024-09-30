@@ -1,36 +1,24 @@
 package com.example.jetpacktest.navigation
 
-import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Text
-import androidx.compose.runtime.*
-import androidx.compose.ui.res.stringResource
-import androidx.navigation.NavBackStackEntry
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.navigation.NavController
-import androidx.navigation.NavDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
-
-val NavBackStackEntry.actualRoute: String?
-    get() = destination.route?.let {
-        it.split("/").joinToString("/") { segment ->
-            if (segment.startsWith("{") && segment.endsWith("}"))
-                arguments?.get(segment.removeSurrounding("{", "}"))?.toString() ?: segment
-            else
-                segment
-        }
-    }
+import com.example.jetpacktest.routes.Route
+import com.example.jetpacktest.routes.actualRoute
 
 @Composable
-fun BottomBar(navController: NavController, screens: Collection<Screen>) {
+fun BottomBar(navController: NavController, screens: Collection<Route>) {
     NavigationBar {
         screens.forEach { (route, name, icon) ->
             val current by navController.currentBackStackEntryAsState()
 
             NavigationBarItem(
                 route == current?.actualRoute,
-                icon = { Icon(icon, contentDescription = stringResource(name)) },
-                label = { Text(stringResource(name)) },
+                icon = {  },
+                label = {  },
                 onClick = {
                     navController.navigate(route) {
                         popUpTo(navController.graph.startDestinationId)

@@ -19,10 +19,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.atTime
+import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -102,4 +105,23 @@ fun CertainDateDialogInput(
     label: @Composable (() -> Unit)? = { Text("Select date") }
 ) {
     DateDialogInput(date, { onChange(it ?: date) }, true, enabled, label)
+}
+
+// this should be the default and not the overcomplicated localdatetime
+@Composable
+fun DateDialogInput(
+    instant: Instant? = null,
+    onChange: (Instant) -> Unit = { },
+    label: @Composable (() -> Unit)? = { Text("Select date") }
+) {
+    val dateTime = (instant ?: Clock.System.now()).toLocalDateTime(TimeZone.currentSystemDefault())
+    val date by remember {
+        mutableStateOf(LocalDate(dateTime.year, dateTime.month, dateTime.dayOfMonth))
+    }
+
+    DateDialogInput(
+        date,
+        { if (it != null) onChange(it.atTime(0, 0).toInstant(TimeZone.currentSystemDefault())) },
+        label = label
+    )
 }

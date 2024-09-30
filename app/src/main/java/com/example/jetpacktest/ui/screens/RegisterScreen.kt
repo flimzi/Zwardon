@@ -1,105 +1,70 @@
 package com.example.jetpacktest.ui.screens
 
-import android.widget.Toast
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.jetpacktest.R
-import com.example.jetpacktest.data.Api
-import com.example.jetpacktest.data.User
-import com.example.jetpacktest.navigation.Screen
-import com.example.jetpacktest.util.Response
-import io.ktor.http.HttpStatusCode
-import kotlinx.coroutines.launch
+import com.example.jetpacktest.myApplication
+import com.example.jetpacktest.routes.App
+import com.example.jetpacktest.ui.Layout
+import com.example.jetpacktest.util.RequestButton
 
 @Composable
 fun RegisterScreen(navController: NavController) {
-    val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
-    var state by remember { mutableStateOf<Response<Nothing>>(Response.Idle) }
+    val authRepository = context.myApplication.authRepository
+
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    val enabled = email.isNotBlank() && password.isNotBlank()
 
-    Column(
-        Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+    Layout(
+        { Text("Register") },
+        rightAction = {
+            TextButton(onClick = { navController.navigate(App.Authentication.login.route) }) {
+                Text("Login")
+            }
+        }
     ) {
-        Text(stringResource(Screen.Register.name))
-
         Spacer(Modifier.height(16.dp))
 
         OutlinedTextField(
-            email, { email = it.trim() },
+            email, { email = it.trim() }, Modifier.fillMaxWidth(),
             label = { Text(stringResource(R.string.email)) }
         )
 
         Spacer(Modifier.height(8.dp))
 
         OutlinedTextField(
-            password, { password = it.trim() },
+            password, { password = it.trim() }, Modifier.fillMaxWidth(),
             label = { Text(stringResource(R.string.password)) },
             visualTransformation = PasswordVisualTransformation()
         )
 
         Spacer(Modifier.height(16.dp))
 
-        Button({
-            coroutineScope.launch {
-                state = Response.Loading
-
-                state = try {
-                    val user = User(0, 1, email = email, password = password)
-                    val response = Api.Users.add(user)
-
-                    when (response.status) {
-                        HttpStatusCode.Created -> Response.Success
-                        HttpStatusCode.Conflict -> Response.Error("E-mail already exists")
-                        HttpStatusCode.BadRequest -> Response.Error("Check your input information and try again")
-                        else -> Response.Error("Server error")
-                    }
-                } catch (e: Exception) {
-                    Response.Error("Server error")
-                }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            RequestButton(authRepository.register(email, password), { state(it) }, enabled = enabled) {
+                Text("Register")
             }
-        }) {
-            if (state is Response.Loading)
-                CircularProgressIndicator(
-                    color = MaterialTheme.colorScheme.secondary,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-            else
-                Text(stringResource(Screen.Register.name))
         }
 
         Spacer(Modifier.height(8.dp))
-
-        Button({ navController.navigate(Screen.Home.route) }) {
-            Text(stringResource(Screen.Login.name))
-        }
-
-        when (val currentState = state) {
-            is Response.Error -> {
-                LaunchedEffect(state) {
-                    Toast.makeText(context, currentState.message, Toast.LENGTH_LONG).show()
-                }
-            }
-            Response.Success -> {
-                navController.navigate(Screen.Home.route)
-
-                LaunchedEffect(state) {
-                    Toast.makeText(context, "Registration successful. Log in to continue", Toast.LENGTH_LONG).show()
-                }
-            }
-            else -> { }
-        }
     }
 }
