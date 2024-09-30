@@ -16,7 +16,7 @@ import com.example.jetpacktest.data.Drug
 import com.example.jetpacktest.routes.Api
 import com.example.jetpacktest.ui.Choice
 import com.example.jetpacktest.ui.ChoiceDialogInput
-import com.example.jetpacktest.ui.Layout
+import com.example.jetpacktest.ui.Screen
 import com.example.jetpacktest.util.Response
 import kotlinx.coroutines.launch
 
@@ -53,7 +53,7 @@ fun AddDrugDialog(
         }
     }
 
-    Layout {
+    Screen {
 //        LaunchedEffect(Unit) {
 //            if (drugId != null) {
 //                Api.Drugs.get(currentUser.accessToken, userId, drugId).collect {

@@ -61,7 +61,7 @@ object Api {
             = httpClient.getResponse<User>(id(userId)) { bearerAuth(accessToken) }
 
         // not sure why this has to be suspend
-        suspend fun addGet(accessToken: String, user: User)
+        fun addGet(accessToken: String, user: User)
             = add(accessToken, user).chain { get(accessToken, it) }
 
         fun update(accessToken: String, userId: Int? = null, user: User)

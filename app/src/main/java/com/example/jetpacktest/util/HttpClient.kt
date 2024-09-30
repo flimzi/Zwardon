@@ -4,8 +4,9 @@ package com.example.jetpacktest.util
 
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -139,35 +140,34 @@ inline fun <reified T> HttpClient.deleteResponse(urlString: String, crossinline 
     = responseFlow { delete(urlString, block).toResponse<T>() }
 
 @Composable
-fun <T> rememberResponse() = remember { mutableStateOf<Response<T>>(Response.Idle) }
+fun <T> rememberResponse(response: Response<T> = Response.Idle) = remember { mutableStateOf<Response<T>>(response) }
 
 @Composable
-fun rememberAnyResponse() = remember { mutableStateOf<Response<*>>(Response.Idle) }
+fun rememberAnyResponse(response: Response<*> = Response.Idle) = remember { mutableStateOf(response) }
+
+@Composable
+fun <T> Request(
+    responseFlow: ResponseFlow<T>,
+    content: @Composable (Response<T>) -> Unit = { }
+) {
+    var response by rememberResponse<T>()
+
+    LaunchedEffect(Unit) { responseFlow.collect { response = it } }
+    content(response)
+}
 
 @Composable
 fun <T> WaitRequest(
     responseFlow: ResponseFlow<T>,
     content: @Composable (T) -> Unit = { }
 ) {
-    val response by responseFlow.collectAsState(Response.Idle)
-
-    when (val currentResponse = response) {
-        is Response.Result -> content(currentResponse.result)
-        is Response.Error -> Text(currentResponse.message)
-        else -> LoadingIndicator()
+    Request(responseFlow) { response ->
+        when (response) {
+            is Response.Result -> content(response.result)
+            is Response.Error -> Text(response.message)
+            else -> LoadingIndicator()
+        }
     }
-}
-
-@Composable
-fun <T> EagerRequest(
-    responseFlow: ResponseFlow<T>,
-    collect: (Response<T>) -> Unit = { },
-    content: @Composable (T?) -> Unit
-) {
-    val response by responseFlow.collectAsState(Response.Idle)
-    collect(response)
-
-    content(response.resultOrNull)
 }
 
 @Composable
@@ -179,21 +179,6 @@ fun <T> ListRequest(
         list.forEach { item -> content(item) }
     }
 }
-//
-//@Composable
-//fun <T> ResponseFlow<T>.wait(content: @Composable (T) -> Unit) {
-//    WaitRequest(this, content)
-//}
-//
-//@Composable
-//fun <T> ResponseFlow<T>.eager(onError: (Response.Error) -> Unit = { }, content: @Composable (T?) -> Unit) {
-//    EagerRequest(this, onError, content)
-//}
-//
-//@Composable
-//fun <T> ResponseFlow<List<T>>.list(content: @Composable (T) -> Unit) {
-//    ListRequest(this, content)
-//}
 
 @Composable
 fun <T> RequestButton(
@@ -228,3 +213,18 @@ fun <T> RequestButton(
     }
 }
 
+@Composable
+fun LoadingTextButton(
+    onClick: () -> Unit,
+    loading: Boolean = false,
+    enabled: Boolean = true,
+    content: @Composable () -> Unit
+) {
+    TextButton(onClick, enabled = enabled && !loading) {
+        if (loading) {
+            LoadingIndicator()
+        } else {
+            content()
+        }
+    }
+}

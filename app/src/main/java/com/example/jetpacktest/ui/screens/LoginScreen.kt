@@ -22,7 +22,7 @@ import androidx.navigation.NavController
 import com.example.jetpacktest.R
 import com.example.jetpacktest.myApplication
 import com.example.jetpacktest.routes.App
-import com.example.jetpacktest.ui.Layout
+import com.example.jetpacktest.ui.Screen
 
 @Composable
 fun LoginScreen(navController: NavController) {
@@ -32,7 +32,7 @@ fun LoginScreen(navController: NavController) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
-    Layout(
+    Screen(
         { Text("Login") },
         rightAction = {
             TextButton(onClick = { navController.navigate(App.Authentication.register.route) }) {

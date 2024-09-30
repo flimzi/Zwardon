@@ -22,8 +22,9 @@ import androidx.navigation.NavController
 import com.example.jetpacktest.R
 import com.example.jetpacktest.myApplication
 import com.example.jetpacktest.routes.App
-import com.example.jetpacktest.ui.Layout
+import com.example.jetpacktest.ui.Screen
 import com.example.jetpacktest.util.RequestButton
+import com.example.jetpacktest.util.rememberAnyResponse
 
 @Composable
 fun RegisterScreen(navController: NavController) {
@@ -32,10 +33,12 @@ fun RegisterScreen(navController: NavController) {
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var response by rememberAnyResponse()
     val enabled = email.isNotBlank() && password.isNotBlank()
 
-    Layout(
+    Screen(
         { Text("Register") },
+        response,
         rightAction = {
             TextButton(onClick = { navController.navigate(App.Authentication.login.route) }) {
                 Text("Login")
@@ -60,7 +63,7 @@ fun RegisterScreen(navController: NavController) {
         Spacer(Modifier.height(16.dp))
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            RequestButton(authRepository.register(email, password), { state(it) }, enabled = enabled) {
+            RequestButton(authRepository.register(email, password), { response = it }, enabled = enabled) {
                 Text("Register")
             }
         }

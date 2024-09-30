@@ -22,10 +22,10 @@ import com.example.jetpacktest.data.User
 import com.example.jetpacktest.routes.Api
 import com.example.jetpacktest.routes.App
 import com.example.jetpacktest.routes.singleIntParameterRoute
-import com.example.jetpacktest.ui.Layout
+import com.example.jetpacktest.ui.FullScreenDialog
+import com.example.jetpacktest.ui.ProcessingScreen
+import com.example.jetpacktest.ui.Screen
 import com.example.jetpacktest.util.WaitRequest
-import com.example.jetpacktest.util.eager
-import com.example.jetpacktest.util.wait
 import kotlinx.coroutines.launch
 
 @Composable
@@ -38,7 +38,7 @@ fun MainScreen(appNavController: NavHostController, currentUser: AuthenticatedUs
         { /* DrawerContent(homeNavController, currentUser, drawerState, listOf(App.User.id.replace(currentUser.details.id))) */ },
         drawerState = drawerState
     ) {
-        Layout(
+        Screen(
             { Text(stringResource(R.string.app_name)) },
             leftAction = {
                 IconButton(
@@ -79,11 +79,32 @@ fun MainScreen(appNavController: NavHostController, currentUser: AuthenticatedUs
                 }
 
                 singleIntParameterRoute(App.User.edit) { _, userId ->
-                    // i need to redirect the results of the requestflow to the resulting dialog
-                    // i think this should probably be done by separating Layout layout from its state
-                    // so that it could then be mediated by a parent response handler
-                    Api.Users.get(currentUser.accessToken, userId).eager(::state) { user ->
-                        EditUserDialog(user ?: User())
+//                    FullScreenDialog {
+//                        val scope = rememberCoroutineScope()
+//                        var response by rememberResponse<User>()
+//
+//                        LaunchedEffect(Unit) {
+//                            Api.Users.get(currentUser.accessToken, userId).collect { response = it }
+//                        }
+//
+//                        UserForm(
+//                            { Text("Edit User") },
+//                            response,
+//                            { },
+//                            {
+//                                Api.Users.update(currentUser.accessToken, userId, it).collect { response = it }
+//                            }
+//                        )
+//                    }
+
+                    FullScreenDialog {
+                        ProcessingScreen(
+                            input = Api.Users.get(currentUser.accessToken, userId),
+                            process = { Api.Users.update(currentUser.accessToken, userId, it) },
+                            enabler = { it.first_name?.isNotBlank() == true }
+                        ) { user, state ->
+                            UserForm(user ?: User()) { state(it) }
+                        }
                     }
                 }
 
