@@ -26,4 +26,6 @@ data class User(
     override fun load(accessToken: String) = Api.Users.get(accessToken, id)
 }
 
-data class AuthenticatedUser(val details: User, val accessToken: String)
+data class AuthenticatedUser(val details: User, val accessToken: String) {
+    val id = details.id
+}

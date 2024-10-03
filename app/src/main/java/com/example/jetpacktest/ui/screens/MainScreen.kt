@@ -22,10 +22,11 @@ import com.example.jetpacktest.data.User
 import com.example.jetpacktest.routes.Api
 import com.example.jetpacktest.routes.App
 import com.example.jetpacktest.routes.singleIntParameterRoute
+import com.example.jetpacktest.ui.Content
 import com.example.jetpacktest.ui.FullScreenDialog
-import com.example.jetpacktest.ui.ProcessingScreen
+import com.example.jetpacktest.ui.ResponseScreen
 import com.example.jetpacktest.ui.Screen
-import com.example.jetpacktest.util.WaitRequest
+import com.example.jetpacktest.util.Request
 import kotlinx.coroutines.launch
 
 @Composable
@@ -52,66 +53,131 @@ fun MainScreen(appNavController: NavHostController, currentUser: AuthenticatedUs
                 }
             },
             rightAction = {
-                IconButton({ homeNavController.navigate(App.User.id.replace(currentUser.details.id).route) }) {
+                IconButton({ homeNavController.navigate(App.User.id.replace(currentUser.id).route) }) {
                     Icon(App.User.id.icon, "Profile")
                 }
             }
         ) {
             NavHost(homeNavController, App.home.route) {
-                // would be nice to somehow allow for filling the entire scrollable content space
-                // also in terms of screens that are not their own dialogs but instead content inside the main dialog some structure needs to be provided
                 composable(App.home.route) {
-//                    Api.Users.get(currentUser.accessToken, -994).eager(::state) { user ->
-//                        Text(user?.email ?: "no email")
-//                    }
-//
-//                    Api.Users.get(currentUser.accessToken, -994).wait { user ->
-//                        Text(user.email ?: "no email")
-//                    }
-//
-//                    Api.Users.getChildren(currentUser.accessToken, 1000).list {
-//
-//                    }
-
-                    Button({ homeNavController.navigate(App.User.edit.replace(200).route) }) {
+                    Button({ homeNavController.navigate(App.User.id.replace(currentUser.id).route) }) {
                         Text("go forth")
                     }
                 }
 
                 singleIntParameterRoute(App.User.edit) { _, userId ->
-//                    FullScreenDialog {
-//                        val scope = rememberCoroutineScope()
-//                        var response by rememberResponse<User>()
-//
-//                        LaunchedEffect(Unit) {
-//                            Api.Users.get(currentUser.accessToken, userId).collect { response = it }
-//                        }
-//
-//                        UserForm(
-//                            { Text("Edit User") },
-//                            response,
-//                            { },
-//                            {
-//                                Api.Users.update(currentUser.accessToken, userId, it).collect { response = it }
-//                            }
-//                        )
-//                    }
-
                     FullScreenDialog {
-                        ProcessingScreen(
-                            input = Api.Users.get(currentUser.accessToken, userId),
-                            process = { Api.Users.update(currentUser.accessToken, userId, it) },
-                            enabler = { it.first_name?.isNotBlank() == true }
-                        ) { user, state ->
-                            UserForm(user ?: User()) { state(it) }
+                        ResponseScreen(
+                            { Text("Edit User") },
+                            { homeNavController.popBackStack() },
+                            { homeNavController.popBackStack() },
+                            Api.Users.get(currentUser.accessToken, userId),
+                            { Api.Users.update(currentUser.accessToken, 500, it) },
+                            { it.first_name?.isNotBlank() == true }
+                        ) { user, onChange, onMessage ->
+                            UserForm(user ?: User(), onChange)
                         }
                     }
                 }
 
                 singleIntParameterRoute(App.User.id) { _, userId ->
                     // ApiRepository could be used to optionally cache responses with a lifetime
-                    WaitRequest(Api.Users.get(currentUser.accessToken, userId)) { user ->
-                        ProfileScreen(appNavController, currentUser, user)
+                    Request(Api.Users.get(currentUser.accessToken, userId)) { response ->
+                        Screen(
+                            { Text("Profile") },
+                            state = response
+                        ) {
+                            Content {
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+                                Text(response.resultOrNull?.email ?: "email here")
+
+                            }
+                        }
                     }
                 }
             }

@@ -1,5 +1,6 @@
 package com.example.jetpacktest.ui
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
@@ -8,6 +9,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -25,19 +28,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.example.jetpacktest.ui.screens.LoadingBox
+import com.example.jetpacktest.routes.App.loading
+import com.example.jetpacktest.ui.screens.LoadingScreen
 import com.example.jetpacktest.util.LoadingTextButton
 import com.example.jetpacktest.util.Response
 import com.example.jetpacktest.util.ResponseFlow
-import com.example.jetpacktest.util.onError
-import com.example.jetpacktest.util.onResult
-import com.example.jetpacktest.util.rememberAnyResponse
+import com.example.jetpacktest.util.rememberResponse
 import kotlinx.coroutines.launch
 
 // probably need to change response to loading and error booleans
@@ -45,21 +46,21 @@ import kotlinx.coroutines.launch
 @Composable
 fun Screen(
     label: @Composable () -> Unit = { },
-    response: Response<*> = Response.Idle,
     leftAction: @Composable () -> Unit = { },
     rightAction: @Composable RowScope.() -> Unit = { },
+    loading: Boolean = false,
+    message: String? = null,
     content: @Composable () -> Unit
 ) {
-    val scrollState = rememberScrollState()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    if (response is Response.Loading) {
-        LoadingBox(true)
+    if (loading) {
+        LoadingScreen(true)
     }
 
-    if (response is Response.Error) {
-        LaunchedEffect(response) {
-            snackbarHostState.showSnackbar(response.message)
+    if (message != null) {
+        LaunchedEffect(message) {
+            snackbarHostState.showSnackbar(message)
         }
     }
 
@@ -71,22 +72,35 @@ fun Screen(
                 Modifier.shadow(12.dp),
                 navigationIcon = leftAction,
                 actions = rightAction,
-                scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+                scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior() // does this do anything
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) {
-        Column(
-            Modifier
-                .padding(it)
-                .padding(horizontal = 30.dp, vertical = 24.dp)
-                .verticalScroll(scrollState)
-                .fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
+        Box(Modifier.padding(it)) {
             content()
         }
     }
+}
+
+@Composable
+fun Scrollable(content: @Composable () -> Unit) {
+    val scrollState = rememberScrollState()
+
+    Box(Modifier.verticalScroll(scrollState)) {
+        content()
+    }
+}
+
+@Composable
+fun Screen(
+    label: @Composable () -> Unit = { },
+    leftAction: @Composable () -> Unit = { },
+    rightAction: @Composable RowScope.() -> Unit = { },
+    state: Response<*> = Response.Idle,
+    content: @Composable () -> Unit
+) {
+    Screen(label, leftAction, rightAction, state is Response.Loading, state.messageOrNull, content)
 }
 
 @Composable
@@ -98,61 +112,90 @@ fun FullScreenDialog(
 }
 
 @Composable
+fun Content(content: @Composable () -> Unit) {
+    Scrollable {
+        Column(
+            Modifier
+                .padding(horizontal = 30.dp, vertical = 24.dp)
+                .fillMaxWidth()
+        ) {
+            content()
+        }
+    }
+}
+
+@Composable
 fun ConfirmationScreen(
     label: @Composable () -> Unit = { },
-    response: Response<*> = Response.Idle,
-    onDismiss: () -> Unit = { },
-    onConfirm: () -> Unit = { },
+    onBack: (() -> Unit)? = null,
+    onConfirm: (() -> Unit)? = null,
+    state: Response<*> = Response.Idle,
     confirmationLoading: Boolean = false,
-    enabled: Boolean = true,
+    confirmationEnabled: Boolean = true,
     content: @Composable () -> Unit
 ) {
     Screen(
-        label, response,
-        { IconButton(onDismiss) { Icon(Icons.Default.Close, "close") } },
-        { LoadingTextButton(onConfirm, confirmationLoading, enabled) { Text("Confirm") } },
-        content
+        label,
+        { if (onBack != null) IconButton(onBack) { Icon(Icons.AutoMirrored.Default.ArrowBack, "Back") } },
+        { if (onConfirm != null) LoadingTextButton(onConfirm, confirmationLoading, confirmationEnabled) { Text("Confirm") } },
+        state, content
     )
 }
 
 @Composable
-fun <T> ProcessingScreen(
+fun <T, X> ResponseScreen(
     label: @Composable () -> Unit = { },
     onDismiss: () -> Unit = { },
-    input: ResponseFlow<T>,
-    process: (T) -> ResponseFlow<*>,
-    enabler: (T) -> Boolean,
-    content: @Composable (T?, (T) -> Unit) -> Unit
+    onSuccess: (X) -> Unit = { },
+    inputFlow: ResponseFlow<T>,
+    processingFlow: (T) -> ResponseFlow<X>,
+    confirmationEnabler: (T) -> Boolean,
+    content: @Composable (T?, (T) -> Unit, (String) -> Unit) -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
-    var processingData by remember { mutableStateOf<T?>(null) }
-    var screenState by rememberAnyResponse()
-    var confirmationLoading by remember { mutableStateOf(false) }
 
-    val currentData = processingData
-    val enabled = currentData != null && enabler(currentData)
+    var inputState by rememberResponse<T>()
+    var processingState by rememberResponse<X>()
+
+    var data by remember { mutableStateOf<T?>(null) }
+    val currentData = data
+    var message by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
-        input.collect {
-            screenState = it
+        inputFlow.collect {
+            inputState = it
 
             if (it is Response.Result) {
-                processingData = it.result
+                data = it.result
+            }
+
+            if (it is Response.Error) {
+                message = it.message
             }
         }
     }
 
-    fun onConfirm() {
-        coroutineScope.launch {
-            process(currentData!!).apply {
-                onResult { onDismiss() }
-                onError { screenState = Response.Error(it) }
-                collect { confirmationLoading = it is Response.Loading }
-            }
-        }
-    }
+    ConfirmationScreen(
+        label, onDismiss,
+        {
+            if (currentData != null) {
+                coroutineScope.launch {
+                    processingFlow(currentData).collect {
+                        processingState = it
+                        message = it.messageOrNull
 
-    ConfirmationScreen(label, screenState, onDismiss, ::onConfirm, confirmationLoading, enabled) {
-        content(processingData) { processingData = it }
+                        if (it is Response.Result) {
+                            onSuccess(it.result)
+                        }
+                    }
+                }
+            }
+        },
+        inputState is Response.Loading,
+        message,
+        processingState is Response.Loading,
+        currentData != null && confirmationEnabler(currentData)
+    ) {
+        content(currentData, { data = it }, { message = it })
     }
 }

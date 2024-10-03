@@ -34,9 +34,9 @@ fun LoadingBox(transparent: Boolean = false) {
 }
 
 @Composable
-fun LoadingScreen() {
+fun LoadingScreen(transparent: Boolean = false) {
     Dialog(onDismissRequest = { }, DialogProperties(usePlatformDefaultWidth = false)) {
-        LoadingBox()
+        LoadingBox(transparent)
     }
 }
 

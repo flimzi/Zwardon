@@ -38,7 +38,6 @@ fun RegisterScreen(navController: NavController) {
 
     Screen(
         { Text("Register") },
-        response,
         rightAction = {
             TextButton(onClick = { navController.navigate(App.Authentication.login.route) }) {
                 Text("Login")

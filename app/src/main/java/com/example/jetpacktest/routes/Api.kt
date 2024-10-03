@@ -65,7 +65,7 @@ object Api {
             = add(accessToken, user).chain { get(accessToken, it) }
 
         fun update(accessToken: String, userId: Int? = null, user: User)
-            = httpClient.putResponse<User>(id(userId)) {
+            = httpClient.putResponse<String>(id(userId)) {
                 bearerAuth(accessToken)
                 contentType(ContentType.Application.Json)
                 setBody(user)
