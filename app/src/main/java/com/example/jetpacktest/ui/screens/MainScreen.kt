@@ -60,7 +60,7 @@ fun MainScreen(appNavController: NavHostController, currentUser: AuthenticatedUs
         ) {
             NavHost(homeNavController, App.home.route) {
                 composable(App.home.route) {
-                    Button({ homeNavController.navigate(App.User.id.replace(currentUser.id).route) }) {
+                    Button({ homeNavController.navigate(App.User.edit.replace(currentUser.id).route) }) {
                         Text("go forth")
                     }
                 }
@@ -72,10 +72,12 @@ fun MainScreen(appNavController: NavHostController, currentUser: AuthenticatedUs
                             { homeNavController.popBackStack() },
                             { homeNavController.popBackStack() },
                             Api.Users.get(currentUser.accessToken, userId),
-                            { Api.Users.update(currentUser.accessToken, 500, it) },
+                            { Api.Users.update(currentUser.accessToken, userId, it) },
                             { it.first_name?.isNotBlank() == true }
                         ) { user, onChange, onMessage ->
-                            UserForm(user ?: User(), onChange)
+                            Content {
+                                UserForm(user ?: User(), onChange)
+                            }
                         }
                     }
                 }
@@ -88,93 +90,6 @@ fun MainScreen(appNavController: NavHostController, currentUser: AuthenticatedUs
                             state = response
                         ) {
                             Content {
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
-                                Text(response.resultOrNull?.email ?: "email here")
 
                             }
                         }

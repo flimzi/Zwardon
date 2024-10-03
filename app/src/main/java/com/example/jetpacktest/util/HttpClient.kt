@@ -99,14 +99,24 @@ fun <T> responseFlow(request: suspend () -> Response<T>) = flow {
 
 typealias ResponseFlow<T> = Flow<Response<T>>
 
-suspend fun <T> ResponseFlow<T>.onError(handler: suspend (String) -> Unit = { }): ResponseFlow<T> {
-    this.filterIsInstance<Response.Error>().collect { handler(it.message) }
-    return this
-}
+suspend fun <T> ResponseFlow<T>.response(
+    onLoading: suspend () -> Unit = { },
+    onError: suspend (String) -> Unit = { },
+    onResult: suspend (T) -> Unit = { },
+) = this.map {
+    if (it is Response.Loading) {
+        onLoading()
+    }
 
-suspend fun <T> ResponseFlow<T>.onResult(handler: suspend (T) -> Unit = { }): ResponseFlow<T> {
-    this.filterIsInstance<Response.Result<T>>().collect { handler(it.result) }
-    return this
+    if (it is Response.Error) {
+        onError(it.message)
+    }
+
+    if (it is Response.Result) {
+        onResult(it.result)
+    }
+
+    it
 }
 
 fun <T, X> ResponseFlow<T>.result(handler: suspend (T) -> X)
