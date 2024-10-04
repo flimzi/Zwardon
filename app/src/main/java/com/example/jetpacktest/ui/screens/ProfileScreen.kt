@@ -21,6 +21,11 @@ import com.example.jetpacktest.routes.navigate
 import kotlinx.coroutines.launch
 
 @Composable
+fun ProfileScreen(user: User) {
+    Text(user.fullName)
+}
+
+@Composable
 fun ProfileScreen(appNavController: NavController, currentUser: AuthenticatedUser, user: User = currentUser.details) {
     val context = LocalContext.current
     val authRepository = context.myApplication.authRepository

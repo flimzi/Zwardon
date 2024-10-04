@@ -1,5 +1,6 @@
 package com.example.jetpacktest.ui.screens
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Button
@@ -22,11 +23,14 @@ import com.example.jetpacktest.data.User
 import com.example.jetpacktest.routes.Api
 import com.example.jetpacktest.routes.App
 import com.example.jetpacktest.routes.singleIntParameterRoute
+import com.example.jetpacktest.ui.ActionScreen
 import com.example.jetpacktest.ui.Content
+import com.example.jetpacktest.ui.FlowScreen
 import com.example.jetpacktest.ui.FullScreenDialog
-import com.example.jetpacktest.ui.ResponseScreen
+import com.example.jetpacktest.ui.Header
 import com.example.jetpacktest.ui.Screen
 import com.example.jetpacktest.util.Request
+import com.example.jetpacktest.util.Response
 import kotlinx.coroutines.launch
 
 @Composable
@@ -60,37 +64,48 @@ fun MainScreen(appNavController: NavHostController, currentUser: AuthenticatedUs
         ) {
             NavHost(homeNavController, App.home.route) {
                 composable(App.home.route) {
-                    Button({ homeNavController.navigate(App.User.edit.replace(currentUser.id).route) }) {
-                        Text("go forth")
+                    ActionScreen(onAction = { }) { state ->
+                        Column {
+                            Request(Api.Users.get(currentUser.accessToken, currentUser.id)) { response ->
+                                state { it.mergeWith(response) }
+                                Text(response.resultOrNull?.email ?: "email here")
+                            }
+
+                            Button({ state { it.copy(actionLoading = !it.actionLoading) } }) {
+                                Text("set loading")
+                            }
+                        }
+
+                    }
+
+
+
+//                    Button({ homeNavController.navigate(App.User.edit, currentUser.id) }) {
+//                        Text("go forth")
+//                    }
+                }
+
+                singleIntParameterRoute(App.User.id) { _, userId ->
+                    Request(Api.Users.get(currentUser.accessToken, userId)) { response ->
+                        Content {
+                            Header(R.string.profile)
+                            ProfileScreen(response.resultOrNull ?: User())
+                        }
                     }
                 }
 
                 singleIntParameterRoute(App.User.edit) { _, userId ->
                     FullScreenDialog {
-                        ResponseScreen(
+                        FlowScreen(
                             { Text("Edit User") },
                             { homeNavController.popBackStack() },
                             { homeNavController.popBackStack() },
                             Api.Users.get(currentUser.accessToken, userId),
                             { Api.Users.update(currentUser.accessToken, userId, it) },
                             { it.first_name?.isNotBlank() == true }
-                        ) { user, onChange, onMessage ->
+                        ) { user, onState ->
                             Content {
-                                UserForm(user ?: User(), onChange)
-                            }
-                        }
-                    }
-                }
-
-                singleIntParameterRoute(App.User.id) { _, userId ->
-                    // ApiRepository could be used to optionally cache responses with a lifetime
-                    Request(Api.Users.get(currentUser.accessToken, userId)) { response ->
-                        Screen(
-                            { Text("Profile") },
-                            state = response
-                        ) {
-                            Content {
-
+                                UserForm(user ?: User()) { onState(Response.Result(it)) }
                             }
                         }
                     }

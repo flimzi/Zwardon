@@ -12,6 +12,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.Lifecycle
+import androidx.navigation.NavHostController
+import com.example.jetpacktest.routes.Route
 import com.example.jetpacktest.ui.screens.LoadingIndicator
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -237,4 +240,13 @@ fun LoadingTextButton(
             content()
         }
     }
+}
+
+fun NavHostController.goBack() {
+    if (currentBackStackEntry?.lifecycle?.currentState == Lifecycle.State.RESUMED)
+        popBackStack()
+}
+
+fun NavHostController.navigate(route: Route, vararg arguments: Any) {
+    navigate(route.replace(*arguments).route) { launchSingleTop = true }
 }

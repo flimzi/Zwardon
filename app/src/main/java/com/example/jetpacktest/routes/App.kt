@@ -2,6 +2,7 @@ package com.example.jetpacktest.routes
 
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
@@ -52,17 +53,17 @@ data class ParameterBuilder(val parameters: MutableList<NamedNavArgument> = muta
     }
 }
 
-fun route(builder: ParameterBuilder.() -> String, icon: ImageVector = Icons.Default.Favorite, name: @Composable () -> Unit = { }): Route {
+fun route(builder: ParameterBuilder.() -> String, icon: ImageVector = Icons.Default.Favorite, @StringRes name: Int = R.string.app_name): Route {
     val parameterBuilder = ParameterBuilder()
-    return Route(parameterBuilder.builder(), parameterBuilder.parameters, icon, name)
+    return Route(parameterBuilder.builder(), parameterBuilder.parameters, icon) { Text(stringResource(name)) }
 }
 
-fun route(route: String, icon: ImageVector = Icons.Default.Favorite, @StringRes name: Int)
-    = Route(route, icon = icon, name = { Text(stringResource(name)) })
+fun route(route: String, icon: ImageVector = Icons.Default.Favorite, @StringRes name: Int = R.string.app_name)
+    = route({ route }, icon, name)
 
 object App {
     val home = route("home", Icons.Default.Home, R.string.home)
-    val loading = Route("loading")
+    val loading = route("loading")
 
     object Authentication {
         val login = route("login", Icons.Default.Lock, R.string.login)
@@ -70,18 +71,18 @@ object App {
     }
 
     object User {
-        private val user = Route("user")
+        private val user = route("user")
         val userId = navArgument("userId") { type = NavType.IntType }
 
         val add = user + route("add", Icons.Default.AddCircle, R.string.addUser)
         val logout = user + route("logout", Icons.Default.Close, R.string.login)
-        val id = user + route({ param(userId) })
+        val id = user + route({ param(userId) }, Icons.Default.AccountCircle, R.string.profile)
         val edit = id + route("edit", Icons.Default.Edit, R.string.login)
         val delete = id + route("delete", Icons.Default.Clear, R.string.login)
     }
 
     object Task {
-        private val task = Route("task")
+        private val task = route("task")
         val taskId = navArgument("taskId") { type = NavType.IntType }
 
         val id = task + route({ param(taskId) })
