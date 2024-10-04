@@ -97,6 +97,10 @@ fun Screen(
     }
 }
 
+// honestly this is cool and i like how it works but it kinda misses the point of the framework a little bit i think because
+// from the mainscreen i could just put all of the modalnavigationdrawer and screen and just compose the screens like that without needing to
+// manage this screenstate it would instead work solely by recomposition
+// just as a route like user edit which shows its own scaffold but the main screens would just do it without the dialog
 data class ScreenState(
     val loading: Boolean = false,
     val message: String? = null,
@@ -112,9 +116,11 @@ fun Screen2(
     label: @Composable () -> Unit = { },
     leftAction: @Composable () -> Unit = { },
     rightAction: @Composable RowScope.() -> Unit = { },
+    initialState: ScreenState = ScreenState(),
     content: @Composable (Transform<ScreenState>) -> Unit
 ) {
-    var screenState by remember { mutableStateOf(ScreenState()) }
+    var screenState by remember { mutableStateOf(initialState) }
+    LaunchedEffect(initialState) { screenState = initialState }
 
     Screen(label, leftAction, rightAction, screenState.loading, screenState.message, screenState.fab) {
         content { transformState -> screenState = transformState(screenState) }
@@ -129,7 +135,12 @@ data class ActionScreenState(
     val actionLoading: Boolean = false,
     val actionEnabled: Boolean = true,
 ) {
-    fun mergeWith(response: Response<*>) = this.copy(loading = response is Response.Loading, message = response.messageOrNull)
+    fun mergeWith(response: Response<*>)
+        = this.copy(
+            loading = response is Response.Loading,
+            message = if (response is Response.Error) response.message else message
+        )
+
     val screenState get() = ScreenState(loading, message, fab)
 }
 
@@ -137,20 +148,51 @@ data class ActionScreenState(
 fun ActionScreen(
     label: @Composable () -> Unit = { },
     onCancel: (() -> Unit)? = null,
-    onAction: (() -> Unit)? = null,
+    onAction: ((Transform<ActionScreenState>) -> Unit)? = null,
+    initialState: ActionScreenState = ActionScreenState(),
     content: @Composable (Transform<ActionScreenState>) -> Unit
 ) {
-    var actionScreenState by remember { mutableStateOf(ActionScreenState()) }
+    var actionScreenState by remember { mutableStateOf(initialState) }
+    LaunchedEffect(initialState) { actionScreenState = initialState }
 
     Screen2(
         label,
         { if (onCancel != null) IconButton(onCancel) { Icon(Icons.Default.Close, "Cancel") } },
-        { if (onAction != null) LoadingTextButton(onAction, actionScreenState.actionLoading, actionScreenState.actionEnabled) { Text("Save") } },
-    ) { screenState ->
-        content { transformState ->
-            actionScreenState = transformState(actionScreenState)
-            screenState { actionScreenState.screenState }
-        }
+        {
+            if (onAction != null) {
+                LoadingTextButton({ onAction { actionScreenState = it(actionScreenState) } }, actionScreenState.actionLoading, actionScreenState.actionEnabled)
+                { Text(stringResource(actionScreenState.actionLabel)) }
+            }
+        },
+        actionScreenState.screenState
+    ) { content { actionScreenState = it(actionScreenState) } }
+}
+
+// we need to define what is the fundamental property of the processingscreen
+// and i think it is the ability to update the data the screen is holding, which can be done outside the definition of the screen
+// also the ability to update that data in the confirmation handler but that i think comes for free when we do it outside the definition of the screen but well see
+// actually that is not quite true because while we have access to the data state we define outside of the screen we cannot manipulate the screen state unless we add the possibility of two way state
+// also im not sure how important doing this right now is because i feel like we already have the important functionality and we could just build on top of that
+
+@Composable
+fun <T> DataScreen(
+    label: @Composable () -> Unit = { },
+    onCancel: (() -> Unit)? = null,
+    onAction: ((T) -> Unit)? = null,
+    initialState: ActionScreenState = ActionScreenState(),
+    content: @Composable (Transform<ActionScreenState>) -> Unit
+) {
+    var data by remember { mutableStateOf<T?>(null) }
+
+    var actionScreenState by remember { mutableStateOf(initialState) }
+    LaunchedEffect(initialState) { actionScreenState = initialState }
+
+    ActionScreen(
+        label,
+        onCancel,
+
+    ) {
+
     }
 }
 
@@ -305,17 +347,3 @@ fun <T, X> FlowScreen(
         }
     }
 }
-
-// mayhaps
-@Composable
-fun <T> State(value: T, content: @Composable (T, (T) -> Unit) -> Unit) {
-    var state by remember { mutableStateOf(value) }
-
-    LaunchedEffect(value) {
-        state = value
-    }
-    content(state) {
-        state = it
-    }
-}
-
