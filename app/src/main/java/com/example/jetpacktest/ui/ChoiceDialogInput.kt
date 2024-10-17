@@ -1,6 +1,5 @@
 package com.example.jetpacktest.ui
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -32,6 +31,7 @@ open class Choice<T>(
     var chosen: MutableState<Boolean> = mutableStateOf(false),
 )
 
+// no time for reworking this
 @Composable
 fun <T> ChoiceDialogInput(
     choices: List<Choice<T>>,
@@ -45,29 +45,29 @@ fun <T> ChoiceDialogInput(
 ) {
     var visible by rememberSaveable { mutableStateOf(launch) }
     var error by rememberSaveable { mutableStateOf("") }
-    val chosen = choices.filter { it.chosen.value }
-    val maxChosenActual = min(choices.size, max(chosen.size, maxChosen))
+    fun chosen() = choices.filter { it.chosen.value }
+    val maxChosenActual = min(choices.size, max(chosen().size, maxChosen))
 
     fun change() {
-        if (chosen.size < minChosen)
+        if (chosen().size < minChosen)
             error = "Select at least $minChosen"
 
-        onChange(chosen.map { it.value })
+        onChange(chosen().map { it.value })
         visible = false
     }
 
     fun choose(choice: Choice<T>) {
         if (choice.chosen.value) {
-            if (chosen.size <= minChosen)
+            if (chosen().size <= minChosen)
                 return
 
             choice.chosen.value = false
         } else {
-            if (chosen.size >= maxChosenActual) {
-                if (chosen.isEmpty())
+            if (chosen().size >= maxChosenActual) {
+                if (chosen().isEmpty())
                     return
 
-                chosen[Random.nextInt(chosen.size)].chosen.value = false
+                chosen()[Random.nextInt(chosen().size)].chosen.value = false
             }
 
             choice.chosen.value = true
@@ -78,7 +78,7 @@ fun <T> ChoiceDialogInput(
     }
 
     OutlinedTextField(
-        chosen.map { it.name }.fastJoinToString(), { }, modifier,
+        chosen().map { it.name }.fastJoinToString(), { }, modifier,
         label = label,
         readOnly = true,
         enabled = choices.isNotEmpty(),
@@ -100,8 +100,8 @@ fun <T> ChoiceDialogInput(
                     choices.forEach { choice ->
                         Row(
                             Modifier
-                                .fillMaxWidth()
-                                .clickable { choose(choice) },
+                                .fillMaxWidth(),
+//                                .clickable { choose(choice) },
                             Arrangement.SpaceBetween, Alignment.CenterVertically
                         ) {
                             Text(choice.name)

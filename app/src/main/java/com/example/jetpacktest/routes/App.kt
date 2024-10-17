@@ -36,12 +36,21 @@ val NavBackStackEntry.actualRoute: String?
         }
     }
 
-data class Route(val route: String, val parameters: List<NamedNavArgument> = listOf(), val icon: ImageVector = Icons.Default.Favorite, val name: @Composable () -> Unit = { }) {
+data class Route(
+    val route: String,
+    val parameters: List<NamedNavArgument> = listOf(),
+    val icon: ImageVector = Icons.Default.Favorite,
+    val actualRoute: String = route,
+    val name: @Composable () -> Unit = { },
+) {
     fun replace(vararg arguments: Any) = parameters.zip(arguments).fold(route) { acc, (parameter, argument) ->
         acc.replace(parameter.parameter, argument.toString())
-    }.let { Route(it) }
+    }.let { this.copy(actualRoute = it) }
 
-    operator fun plus(nested: Route) = nested.copy(route = route + "/" + nested.route, parameters = parameters + nested.parameters)
+    operator fun plus(nested: Route) = nested.copy(
+        route = route + "/" + nested.route,
+        actualRoute =  actualRoute + "/" + nested.actualRoute,
+        parameters = parameters + nested.parameters)
 }
 
 fun NavController.navigate(route: Route, vararg arguments: Any) = navigate(route.replace(arguments).route)
@@ -87,6 +96,13 @@ object App {
 
         val id = task + route({ param(taskId) })
         val add = User.id + task + route("add", Icons.Default.AddCircle, R.string.addUser)
+    }
+
+    object Drug {
+        private val drug = route("drug")
+        val drugId = navArgument("drugId") { type = NavType.IntType }
+
+        val add = drug + route("add")
     }
 }
 

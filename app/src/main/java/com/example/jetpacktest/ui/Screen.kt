@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -28,7 +28,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,12 +47,9 @@ import com.example.jetpacktest.util.LoadingTextButton
 import com.example.jetpacktest.util.Request
 import com.example.jetpacktest.util.Response
 import com.example.jetpacktest.util.ResponseFlow
-import com.example.jetpacktest.util.rememberAnyResponse
-import com.example.jetpacktest.util.rememberResponse
 import com.example.jetpacktest.util.response
 import kotlinx.coroutines.launch
 
-// probably need to change response to loading and error booleans
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Screen(
@@ -97,10 +93,6 @@ fun Screen(
     }
 }
 
-// honestly this is cool and i like how it works but it kinda misses the point of the framework a little bit i think because
-// from the mainscreen i could just put all of the modalnavigationdrawer and screen and just compose the screens like that without needing to
-// manage this screenstate it would instead work solely by recomposition
-// just as a route like user edit which shows its own scaffold but the main screens would just do it without the dialog
 data class ScreenState(
     val loading: Boolean = false,
     val message: String? = null,
@@ -112,7 +104,7 @@ data class ScreenState(
 typealias Transform <T> = ((T) -> T) -> Unit
 
 @Composable
-fun Screen2(
+fun StateScreen(
     label: @Composable () -> Unit = { },
     leftAction: @Composable () -> Unit = { },
     rightAction: @Composable RowScope.() -> Unit = { },
@@ -153,9 +145,9 @@ fun ActionScreen(
     content: @Composable (Transform<ActionScreenState>) -> Unit
 ) {
     var actionScreenState by remember { mutableStateOf(initialState) }
-    LaunchedEffect(initialState) { actionScreenState = initialState }
+    LaunchedEffect(initialState) { actionScreenState = initialState } // this would be merged ideally
 
-    Screen2(
+    StateScreen(
         label,
         { if (onCancel != null) IconButton(onCancel) { Icon(Icons.Default.Close, "Cancel") } },
         {
@@ -165,34 +157,59 @@ fun ActionScreen(
             }
         },
         actionScreenState.screenState
-    ) { content { actionScreenState = it(actionScreenState) } }
+    ) { content { actionScreenState = it(actionScreenState) }
+    }
 }
 
-// we need to define what is the fundamental property of the processingscreen
-// and i think it is the ability to update the data the screen is holding, which can be done outside the definition of the screen
-// also the ability to update that data in the confirmation handler but that i think comes for free when we do it outside the definition of the screen but well see
-// actually that is not quite true because while we have access to the data state we define outside of the screen we cannot manipulate the screen state unless we add the possibility of two way state
-// also im not sure how important doing this right now is because i feel like we already have the important functionality and we could just build on top of that
-
+// this should use datascreen because it kinda has nothing to offer by its own besides the function
 @Composable
-fun <T> DataScreen(
+fun <T, X> ProcessingScreen(
     label: @Composable () -> Unit = { },
     onCancel: (() -> Unit)? = null,
-    onAction: ((T) -> Unit)? = null,
+    onResult: (X) -> Unit = { },
+    initialValue: T,
+    processFlow: (T) -> ResponseFlow<X>? = { null },
     initialState: ActionScreenState = ActionScreenState(),
-    content: @Composable (Transform<ActionScreenState>) -> Unit
+    content: @Composable (Transform<ActionScreenState>, T, (T) -> Unit) -> Unit
 ) {
-    var data by remember { mutableStateOf<T?>(null) }
-
-    var actionScreenState by remember { mutableStateOf(initialState) }
-    LaunchedEffect(initialState) { actionScreenState = initialState }
+    val coroutineScope = rememberCoroutineScope()
+    var data by remember { mutableStateOf(initialValue) }
 
     ActionScreen(
-        label,
-        onCancel,
-
+        label, onCancel,
+        { state ->
+            coroutineScope.launch {
+                processFlow(data)
+                    ?.response(onResult = onResult)
+                    ?.collect { response ->
+                        state {
+                            it.copy(
+                                actionLoading = response is Response.Loading,
+                                message = response.messageOrNull
+                            )
+                        }
+                    }
+            }
+        },
+        initialState
     ) {
+        content(it, data) { data = it }
+    }
+}
 
+@Composable
+fun <T, X> FlowScreen(
+    label: @Composable () -> Unit = { },
+    onCancel: (() -> Unit)? = null,
+    onResult: (X) -> Unit = { },
+    inputFlow: ResponseFlow<T>,
+    initialValue: T,
+    processFlow: (T) -> ResponseFlow<X>? = { null },
+    initialState: ActionScreenState = ActionScreenState(),
+    content: @Composable (Transform<ActionScreenState>, T, (T) -> Unit) -> Unit
+) {
+    Request(inputFlow) { response ->
+        ProcessingScreen(label, onCancel, onResult, initialValue, processFlow, initialState.mergeWith(response), content)
     }
 }
 
@@ -206,23 +223,20 @@ fun EditActionButton(onClick: () -> Unit) {
 }
 
 @Composable
-fun AddActionButton(onClick: () -> Unit) {
+fun AddActionButton(
+    text: @Composable () -> Unit = { Text(stringResource(R.string.add)) },
+    onClick: () -> Unit
+) {
     ExtendedFloatingActionButton(
-        { Text(stringResource(R.string.add)) },
-        { Icon(Icons.Default.Edit, contentDescription = "Edit") },
+        text,
+        { Icon(Icons.Default.Add, contentDescription = "Add") },
         onClick,
     )
 }
 
 @Composable
-fun Screen(
-    label: @Composable () -> Unit = { },
-    leftAction: @Composable () -> Unit = { },
-    rightAction: @Composable RowScope.() -> Unit = { },
-    state: Response<*> = Response.Idle,
-    content: @Composable () -> Unit
-) {
-    Screen(label, leftAction, rightAction, state is Response.Loading, state.messageOrNull, {}, content)
+fun AddTaskActionButton(onClick: () -> Unit) {
+    AddActionButton({ Text(stringResource(R.string.addTask)) }, onClick)
 }
 
 @Composable
@@ -258,92 +272,6 @@ fun Content(content: @Composable () -> Unit) {
                 .fillMaxWidth()
         ) {
             content()
-        }
-    }
-}
-
-@Composable
-fun ConfirmationScreen(
-    label: @Composable () -> Unit = { },
-    onBack: (() -> Unit)? = null,
-    onConfirm: (() -> Unit)? = null,
-    state: Response<*> = Response.Idle,
-    confirmationLoading: Boolean = false,
-    confirmationEnabled: Boolean = true,
-    content: @Composable () -> Unit
-) {
-    Screen(
-        label,
-        { if (onBack != null) IconButton(onBack) { Icon(Icons.AutoMirrored.Default.ArrowBack, "Back") } },
-        { if (onConfirm != null) LoadingTextButton(onConfirm, confirmationLoading, confirmationEnabled) { Text("Confirm") } },
-        state, content
-    )
-}
-
-typealias StateController<T> = ((Response<T>) -> Unit)
-
-@Composable
-fun <T> ProcessingScreen(
-    label: @Composable () -> Unit = { },
-    onBack: (() -> Unit)? = null,
-    onConfirm: (T, StateController<*>) -> Unit  = { _, _ -> },
-    state: Response<T>,
-    confirmationEnabler: (T) -> Boolean = { true },
-    content: @Composable (StateController<T>) -> Unit
-) {
-    var responseState by rememberResponse<T>()
-    LaunchedEffect(state) { responseState = state }
-
-    var processingState by rememberAnyResponse()
-
-    var data by remember { mutableStateOf<T?>(null) }
-    LaunchedEffect(responseState) { if (responseState is Response.Result) data = responseState.resultOrNull }
-    val currentData = data
-
-    val screenState by remember {
-        derivedStateOf {
-            when {
-                responseState is Response.Error || responseState is Response.Loading -> responseState
-                processingState is Response.Error -> processingState
-
-                else -> Response.Idle
-            }
-        }
-    }
-
-    ConfirmationScreen(
-        label,
-        onBack,
-        { if (currentData != null) onConfirm(currentData) { processingState = it } },
-        screenState,
-        processingState is Response.Loading,
-        currentData != null && confirmationEnabler(currentData)
-    ) {
-        content { responseState = it }
-    }
-}
-
-@Composable
-fun <T, X> FlowScreen(
-    label: @Composable () -> Unit = { },
-    onBack: (() -> Unit)? = null,
-    onResult: (X) -> Unit = { },
-    input: ResponseFlow<T>,
-    process: (T) -> ResponseFlow<X>,
-    confirmationEnabler: (T) -> Boolean = { true },
-    content: @Composable (T?, StateController<T>) -> Unit
-) {
-    val coroutineScope = rememberCoroutineScope()
-
-    Request(input) { response ->
-        ProcessingScreen(
-            label,
-            onBack,
-            { value, onState -> coroutineScope.launch { process(value).response(onResult = onResult).collect(onState) } },
-            response,
-            confirmationEnabler
-        ) { onState ->
-            content(response.resultOrNull, onState)
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.example.jetpacktest.routes
 
 import com.example.jetpacktest.data.Drug
+import com.example.jetpacktest.data.Task
 import com.example.jetpacktest.data.User
 import com.example.jetpacktest.util.chain
 import com.example.jetpacktest.util.deleteResponse
@@ -11,7 +12,6 @@ import com.example.jetpacktest.util.putResponse
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
-import io.ktor.client.request.post
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
@@ -54,11 +54,13 @@ object Api {
             = httpClient.postResponse<Int>(USERS) {
                 bearerAuth(accessToken)
                 contentType(ContentType.Application.Json)
-                setBody(user)
+                setBody(user.copy(role = 2))
             }
 
         fun get(accessToken: String, userId: Int? = null)
-            = httpClient.getResponse<User>(id(userId)) { bearerAuth(accessToken) }
+            = httpClient.getResponse<User>(id(userId)) {
+                bearerAuth(accessToken)
+            }
 
         // not sure why this has to be suspend
         fun addGet(accessToken: String, user: User)
@@ -85,11 +87,12 @@ object Api {
     }
 
     object Events {
+        fun events(userId: Int?) = Users.id(userId) + "/events"
         fun id(userId: Int?, eventId: Int) = Users.id(userId) + "/event/$eventId"
-        fun upcomingTasks(userId: Int? = null) = Users.id(userId) + "/tasks/upcoming"
+        fun upcomingTasks(userId: Int? = null) = "/tasks/upcoming"
 
-        suspend fun add(accessToken: String, userId: Int? = null, event: Any) =
-            httpClient.post(Users.id(userId) + "/events") {
+        fun add(accessToken: String, userId: Int? = null, event: Any) =
+            httpClient.postResponse<String>(events(userId)) {
                 bearerAuth(accessToken)
                 contentType(ContentType.Application.Json)
                 setBody(event)
@@ -108,8 +111,8 @@ object Api {
         suspend fun delete(accessToken: String, userId: Int? = null, eventId: Int) =
             httpClient.delete(id(userId, eventId)) { bearerAuth(accessToken) }
 
-        suspend fun getUpcomingTasks(accessToken: String, userId: Int? = null) =
-            httpClient.get(upcomingTasks(userId)) { bearerAuth(accessToken) }
+        fun getUpcomingTasks(accessToken: String, userId: Int? = null)
+            = httpClient.getResponse<List<Task>>(upcomingTasks(userId)) { bearerAuth(accessToken) }
     }
 
     object Fcm {
@@ -128,8 +131,8 @@ object Api {
         private fun drug(userId: Int?, drugId: Int) = Users.id(userId) + "/drug/$drugId"
         private fun drugs(userId: Int?) = Users.id(userId) + "/drugs"
 
-        fun get(accessToken: String, userId: Int?) =
-            httpClient.getResponse<Drug>(drugs(userId)) {
+        fun getForUser(accessToken: String, userId: Int? = null) =
+            httpClient.getResponse<List<Drug>>(drugs(userId)) {
                 bearerAuth(accessToken)
             }
 
@@ -138,8 +141,8 @@ object Api {
                 bearerAuth(accessToken)
             }
 
-        fun add(accessToken: String, userId: Int, drug: Drug) =
-            httpClient.postResponse<Int>(drugs(userId)) {
+        fun add(accessToken: String, userId: Int? = null, drug: Drug)
+            = httpClient.postResponse<Drug>(drugs(userId)) {
                 bearerAuth(accessToken)
                 contentType(ContentType.Application.Json)
                 setBody(drug)

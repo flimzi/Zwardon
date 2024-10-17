@@ -7,6 +7,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -19,12 +20,14 @@ import com.example.jetpacktest.ui.screens.LoadingIndicator
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.android.Android
+import io.ktor.client.plugins.HttpClientPlugin
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.plugins.logging.SIMPLE
 import io.ktor.client.request.HttpRequestBuilder
+import io.ktor.client.request.HttpRequestPipeline
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.post
@@ -32,6 +35,7 @@ import io.ktor.client.request.put
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
+import io.ktor.util.AttributeKey
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -44,6 +48,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import java.util.concurrent.ConcurrentHashMap
+import kotlin.reflect.KType
+import kotlin.reflect.typeOf
 
 val httpClient by lazy {
     HttpClient(Android) {
@@ -57,16 +64,15 @@ val httpClient by lazy {
         install(ContentNegotiation) {
             json(Json {
                 ignoreUnknownKeys = true
+                encodeDefaults = true
             })
         }
     }
 }
 
 sealed class Response<out T> {
-    // im not sure if this shouldnt be Any instead of Nothing
     data object Idle : Response<Nothing>()
     data object Loading : Response<Nothing>()
-    // this is kinda irritating and i feel like maybe shouldnt exist
     data class Result<out T>(val result: T) : Response<T>()
     data class Error(val message: String = "Generic Error") : Response<Nothing>()
     val resultOrNull get() = (this as? Result<T>)?.result
@@ -161,20 +167,22 @@ fun rememberAnyResponse(response: Response<*> = Response.Idle) = remember { muta
 @Composable
 fun <T> Request(
     responseFlow: ResponseFlow<T>,
-    content: @Composable (Response<T>) -> Unit = { }
+    key: Any? = null,
+    content: @Composable (Response<T>) -> Unit = { },
 ) {
     var response by rememberResponse<T>()
 
-    LaunchedEffect(Unit) { responseFlow.collect { response = it } }
+    LaunchedEffect(key) { responseFlow.collect { response = it } }
     content(response)
 }
 
 @Composable
 fun <T> WaitRequest(
     responseFlow: ResponseFlow<T>,
+    key: Any? = null,
     content: @Composable (T) -> Unit = { }
 ) {
-    Request(responseFlow) { response ->
+    Request(responseFlow, key) { response ->
         when (response) {
             is Response.Result -> content(response.result)
             is Response.Error -> Text(response.message)
@@ -186,9 +194,10 @@ fun <T> WaitRequest(
 @Composable
 fun <T> ListRequest(
     responseFlow: ResponseFlow<List<T>>,
+    key: Any? = null,
     content: @Composable (T) -> Unit
 ) {
-    WaitRequest(responseFlow) { list ->
+    WaitRequest(responseFlow, key) { list ->
         list.forEach { item -> content(item) }
     }
 }
@@ -248,5 +257,39 @@ fun NavHostController.goBack() {
 }
 
 fun NavHostController.navigate(route: Route, vararg arguments: Any) {
-    navigate(route.replace(*arguments).route) { launchSingleTop = true }
+    navigate(route.replace(*arguments).actualRoute) { launchSingleTop = true }
+}
+
+@Composable
+fun <T> ResponseFlow<T>.collectAtState() = remember { this }.collectAsState(Response.Loading)
+
+data class CacheEntry(val timestamp: Long, val type: KType, val data: Any?) {
+    companion object {
+        inline fun <reified T> create(data: T) = CacheEntry(System.currentTimeMillis(), typeOf<T>(), data)
+    }
+}
+
+val CACHE_ATTRIBUTE_KEY = AttributeKey<Boolean>("CacheAttributeKey")
+fun HttpRequestBuilder.cache(refresh: Boolean = false) = attributes.put(CACHE_ATTRIBUTE_KEY, true)
+
+typealias CacheMap = ConcurrentHashMap<String, CacheEntry>
+
+// not sure yet if this should be here or handled by getResponse
+// honestly this isnt really going to work either way because there is no mechanism for saying that a given url is to be invalidated
+// this would need to be a static method on a CacheManager like invalidateChildren()
+// but i feel like the best way to do it now is to just tackle the issue at hand which is also difficult because of course
+
+class Cache {
+    companion object : HttpClientPlugin<CacheMap, CacheMap> {
+        override val key = AttributeKey<CacheMap>("MyCachePlugin")
+        override fun prepare(block: CacheMap.() -> Unit) = CacheMap().apply(block)
+
+        override fun install(plugin: CacheMap, scope: HttpClient) {
+            scope.requestPipeline.intercept(HttpRequestPipeline.Before) {
+                val key = context.url.toString()
+
+
+            }
+        }
+    }
 }
